@@ -1,4 +1,8 @@
+<<<<<<< HEAD
 # GitOps Toolkit - Reusable ArgoCD Applications
+=======
+# 🚀 GitOps Toolkit - Reusable ArgoCD Applications
+>>>>>>> bc80dc6c5729c6e06cdc3e74978043415c759923
 
 Production-ready ArgoCD Applications for rapid deployment of infrastructure services in Kubernetes.
 
