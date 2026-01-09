@@ -1,4 +1,4 @@
-# 🚀 GitOps Toolkit - Reusable ArgoCD Applications
+## 🚀 GitOps Toolkit - Reusable ArgoCD Applications
 
 [![ArgoCD](https://img.shields.io/badge/ArgoCD-Ready-blue)](https://argo-cd.readthedocs.io/)
 [![Kubernetes](https://img.shields.io/badge/Kubernetes-1.28+-brightgreen)](https://kubernetes.io/)
