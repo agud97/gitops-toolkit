@@ -2,45 +2,46 @@
 
 [![ArgoCD](https://img.shields.io/badge/ArgoCD-Ready-blue)](https://argo-cd.readthedocs.io/)
 [![Kubernetes](https://img.shields.io/badge/Kubernetes-1.28+-brightgreen)](https://kubernetes.io/)
+[![License](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
 
-Набор готовых к использованию ArgoCD Applications для быстрого развёртывания инфраструктурных сервисов в Kubernetes.
+A collection of production-ready ArgoCD Applications for rapid deployment of infrastructure services in Kubernetes.
 
-## 📋 Содержание
+## 📋 Table of Contents
 
-- [Быстрый старт](#-быстрый-старт)
-- [Структура проекта](#-структура-проекта)
-- [Доступные компоненты](#-доступные-компоненты)
-- [Использование](#-использование)
-- [Кастомизация](#-кастомизация)
+- [Quick Start](#-quick-start)
+- [Project Structure](#-project-structure)
+- [Available Components](#-available-components)
+- [Usage](#-usage)
+- [Customization](#-customization)
 
-## ⚡ Быстрый старт
+## ⚡ Quick Start
 
 ```bash
-# 1. Форкните репозиторий или клонируйте
-git clone https://github.com/YOUR_USERNAME/gitops-toolkit.git
+# 1. Fork or clone the repository
+git clone https://github.com/agud97/gitops-toolkit.git
 cd gitops-toolkit
 
-# 2. Установите ArgoCD (если ещё не установлен)
+# 2. Install ArgoCD (if not already installed)
 kubectl create namespace argocd
 kubectl apply -n argocd -f https://raw.githubusercontent.com/argoproj/argo-cd/stable/manifests/install.yaml
 
-# 3. Добавьте репозиторий в ArgoCD
-argocd repo add https://github.com/YOUR_USERNAME/gitops-toolkit.git
+# 3. Add repository to ArgoCD
+argocd repo add https://github.com/agud97/gitops-toolkit.git
 
-# 4. Выберите нужные приложения и примените
+# 4. Apply the applications you need
 kubectl apply -f bootstrap/app-of-apps.yaml
-# или выборочно:
+# or selectively:
 kubectl apply -f applications/vault/application.yaml
 ```
 
-## 📁 Структура проекта
+## 📁 Project Structure
 
 ```
 gitops-toolkit/
 ├── README.md
-├── bootstrap/                    # Начальная загрузка
-│   ├── app-of-apps.yaml         # Root Application (App-of-Apps паттерн)
-│   └── project.yaml             # AppProject
+├── bootstrap/                    # Bootstrap configuration
+│   ├── app-of-apps.yaml         # Root Application (App-of-Apps pattern)
+│   └── project.yaml             # AppProject definition
 │
 ├── applications/                 # ArgoCD Applications
 │   ├── vault/                   # HashiCorp Vault
@@ -55,36 +56,36 @@ gitops-toolkit/
 │   ├── grafana/                 # Grafana
 │   └── ...
 │
-├── helm-values/                  # Helm values для каждого сервиса
+├── helm-values/                  # Helm values for each service
 │   ├── vault/
-│   │   ├── values-base.yaml     # Базовая конфигурация
+│   │   ├── values-base.yaml     # Base configuration
 │   │   ├── values-dev.yaml      # Development overrides
 │   │   └── values-prod.yaml     # Production overrides
 │   └── ...
 │
-├── manifests/                    # Raw Kubernetes манифесты
-│   ├── operators/               # CRDs и операторы
-│   └── custom/                  # Кастомные ресурсы
+├── manifests/                    # Raw Kubernetes manifests
+│   ├── operators/               # CRDs and operators
+│   └── custom/                  # Custom resources
 │
-├── overlays/                     # Kustomize overlays для разных окружений
+├── overlays/                     # Kustomize overlays for different environments
 │   ├── dev/
 │   ├── staging/
 │   └── prod/
 │
-└── docs/                         # Документация
+└── docs/                         # Documentation
     ├── VAULT.md
     ├── KAFKA.md
     └── ...
 ```
 
-## 🧩 Доступные компоненты
+## 🧩 Available Components
 
-| Компонент | Версия | Описание | Статус |
-|-----------|--------|----------|--------|
+| Component | Version | Description | Status |
+|-----------|---------|-------------|--------|
 | **Security & Secrets** |
-| [HashiCorp Vault](applications/vault/) | 1.20.x | Управление секретами | ✅ Ready |
-| [Vault Secrets Operator](applications/vault-secrets-operator/) | 0.10.x | Синхронизация секретов в K8s | ✅ Ready |
-| [Cert-Manager](applications/cert-manager/) | 1.16.x | Управление сертификатами | ✅ Ready |
+| [HashiCorp Vault](applications/vault/) | 1.20.x | Secrets management | ✅ Ready |
+| [Vault Secrets Operator](applications/vault-secrets-operator/) | 0.10.x | Sync secrets to K8s | ✅ Ready |
+| [Cert-Manager](applications/cert-manager/) | 1.16.x | Certificate management | ✅ Ready |
 | **API Gateway & Networking** |
 | [Kong Gateway](applications/kong/) | 3.9.x | API Gateway (DBless/DB) | ✅ Ready |
 | [Ingress NGINX](applications/ingress-nginx/) | 1.13.x | Ingress Controller | ✅ Ready |
@@ -102,21 +103,21 @@ gitops-toolkit/
 | **Misc** |
 | [Centrifugo](applications/centrifugo/) | 6.x | WebSocket Server | ✅ Ready |
 
-## 🔧 Использование
+## 🔧 Usage
 
-### Вариант 1: App-of-Apps (рекомендуется)
+### Option 1: App-of-Apps (Recommended)
 
-Используйте паттерн App-of-Apps для управления всеми приложениями:
+Use the App-of-Apps pattern to manage all applications:
 
 ```yaml
-# Отредактируйте bootstrap/app-of-apps.yaml
-# Укажите ваш репозиторий и выберите нужные приложения
+# Edit bootstrap/app-of-apps.yaml
+# Specify your repository and select needed applications
 kubectl apply -f bootstrap/app-of-apps.yaml
 ```
 
-### Вариант 2: Выборочная установка
+### Option 2: Selective Installation
 
-Установите только нужные компоненты:
+Install only the components you need:
 
 ```bash
 # Vault
@@ -130,26 +131,26 @@ kubectl apply -f applications/kafka/cluster.yaml
 kubectl apply -f applications/victoria-metrics/application.yaml
 ```
 
-### Вариант 3: Копирование в свой проект
+### Option 3: Copy to Your Project
 
-Скопируйте нужные директории в ваш GitOps репозиторий:
+Copy the needed directories to your GitOps repository:
 
 ```bash
 cp -r applications/vault/ /path/to/your/gitops-repo/apps/
 cp -r helm-values/vault/ /path/to/your/gitops-repo/values/
 ```
 
-## ⚙️ Кастомизация
+## ⚙️ Customization
 
-### Переменные окружения
+### Environment Variables
 
-Каждый компонент поддерживает кастомизацию через:
+Each component supports customization through:
 
 1. **Helm Values** - `helm-values/<component>/values-<env>.yaml`
 2. **Kustomize Overlays** - `overlays/<env>/`
-3. **ArgoCD Application параметры** - прямо в Application spec
+3. **ArgoCD Application parameters** - directly in Application spec
 
-### Пример кастомизации Vault:
+### Example: Customizing Vault
 
 ```yaml
 # helm-values/vault/values-prod.yaml
@@ -166,27 +167,28 @@ server:
     storageClass: fast-ssd
 ```
 
-## 🔒 Безопасность
+## 🔒 Security
 
-⚠️ **Важно:**
-- Не храните секреты в Git
-- Используйте External Secrets Operator или VSO для синхронизации секретов
-- Сканируйте репозиторий на наличие утечек (gitleaks, trufflehog)
+⚠️ **Important:**
+- Never store secrets in Git
+- Use External Secrets Operator or VSO for secrets synchronization
+- Scan repository for leaks (gitleaks, trufflehog)
 
-## 📚 Документация
+## 📚 Documentation
 
 - [Vault Setup Guide](docs/VAULT.md)
 - [Kafka Configuration](docs/KAFKA.md)
 - [Kong Routes](docs/KONG.md)
 - [Monitoring Stack](docs/MONITORING.md)
+- [Quick Start Guide](docs/QUICK-START.md)
 
 ## 🤝 Contributing
 
-1. Fork репозитория
-2. Создайте feature branch
-3. Commit изменения
-4. Push и создайте Pull Request
+1. Fork the repository
+2. Create a feature branch
+3. Commit your changes
+4. Push and create a Pull Request
 
 ## 📄 License
 
-MIT License - используйте свободно!
+MIT License - feel free to use!

@@ -1,10 +1,10 @@
-# HashiCorp Vault - Руководство
+# HashiCorp Vault - Setup Guide
 
-## Обзор
+## Overview
 
-HashiCorp Vault - централизованное решение для управления секретами, шифрования данных и управления доступом.
+HashiCorp Vault is a centralized solution for secrets management, data encryption, and access control.
 
-## Архитектура
+## Architecture
 
 ```
 ┌─────────────────────────────────────────────────────────────────┐
@@ -25,66 +25,66 @@ HashiCorp Vault - централизованное решение для упр�
 └─────────────────────────────────────────────────────────────────┘
 ```
 
-## Установка
+## Installation
 
-### 1. Применение ArgoCD Application
+### 1. Apply ArgoCD Application
 
 ```bash
 kubectl apply -f applications/vault/application.yaml
 ```
 
-### 2. Инициализация Vault (ручная операция)
+### 2. Initialize Vault (Manual Operation)
 
-После того как pod запустится, необходимо инициализировать Vault:
+After the pod starts, you need to initialize Vault:
 
 ```bash
-# Проверка статуса
+# Check status
 kubectl exec -n vault vault-0 -- vault status
 
-# Инициализация (выполняется ОДИН раз!)
+# Initialize (run ONCE only!)
 kubectl exec -n vault vault-0 -- vault operator init \
   -key-shares=1 \
   -key-threshold=1 \
   -format=json > vault-init.json
 
-# ⚠️ ВАЖНО: Сохраните vault-init.json в безопасном месте!
-# Содержит unseal keys и root token
+# ⚠️ IMPORTANT: Store vault-init.json securely!
+# Contains unseal keys and root token
 ```
 
-### 3. Разблокировка (Unseal)
+### 3. Unseal Vault
 
 ```bash
-# Получение unseal key из файла
+# Get unseal key from file
 UNSEAL_KEY=$(cat vault-init.json | jq -r '.unseal_keys_b64[0]')
 
-# Разблокировка
+# Unseal
 kubectl exec -n vault vault-0 -- vault operator unseal $UNSEAL_KEY
 ```
 
-### 4. Настройка Kubernetes Auth
+### 4. Configure Kubernetes Auth
 
 ```bash
 ROOT_TOKEN=$(cat vault-init.json | jq -r '.root_token')
 
-# Авторизация
+# Login
 kubectl exec -n vault vault-0 -- vault login $ROOT_TOKEN
 
-# Включение Kubernetes auth
+# Enable Kubernetes auth
 kubectl exec -n vault vault-0 -- vault auth enable kubernetes
 
-# Настройка Kubernetes auth
+# Configure Kubernetes auth
 kubectl exec -n vault vault-0 -- sh -c 'vault write auth/kubernetes/config \
     kubernetes_host="https://$KUBERNETES_PORT_443_TCP_ADDR:443" \
     kubernetes_ca_cert=@/var/run/secrets/kubernetes.io/serviceaccount/ca.crt'
 
-# Включение KV-v2 secrets engine
+# Enable KV-v2 secrets engine
 kubectl exec -n vault vault-0 -- vault secrets enable -path=secret kv-v2
 ```
 
-### 5. Создание политики и роли
+### 5. Create Policy and Role
 
 ```bash
-# Создание политики
+# Create policy
 kubectl exec -n vault vault-0 -- sh -c 'echo '\''
 path "secret/data/*" {
   capabilities = ["read"]
@@ -94,7 +94,7 @@ path "secret/metadata/*" {
 }
 '\'' | vault policy write app-secrets -'
 
-# Создание роли для namespace
+# Create role for namespace
 kubectl exec -n vault vault-0 -- vault write auth/kubernetes/role/app-role \
     bound_service_account_names=default \
     bound_service_account_namespaces=default,app \
@@ -102,7 +102,7 @@ kubectl exec -n vault vault-0 -- vault write auth/kubernetes/role/app-role \
     ttl=1h
 ```
 
-## Использование с VSO (Vault Secrets Operator)
+## Using with VSO (Vault Secrets Operator)
 
 ### VaultStaticSecret
 
@@ -127,7 +127,7 @@ spec:
   refreshAfter: 30s
 ```
 
-### VaultDynamicSecret (для database credentials)
+### VaultDynamicSecret (for database credentials)
 
 ```yaml
 apiVersion: secrets.hashicorp.com/v1beta1
@@ -148,37 +148,37 @@ spec:
   renewalPercent: 67
 ```
 
-## Команды управления
+## Management Commands
 
 ```bash
-# Статус Vault
+# Vault status
 kubectl exec -n vault vault-0 -- vault status
 
-# Список секретов
+# List secrets
 kubectl exec -n vault vault-0 -- vault kv list secret/
 
-# Чтение секрета
+# Read secret
 kubectl exec -n vault vault-0 -- vault kv get secret/path/to/secret
 
-# Запись секрета
+# Write secret
 kubectl exec -n vault vault-0 -- vault kv put secret/path/to/secret \
   username="user" \
   password="pass"
 
-# Удаление секрета
+# Delete secret
 kubectl exec -n vault vault-0 -- vault kv delete secret/path/to/secret
 ```
 
 ## Auto-Unseal
 
-Для production рекомендуется настроить auto-unseal через:
+For production, it's recommended to configure auto-unseal using:
 
 - AWS KMS
 - GCP Cloud KMS
 - Azure Key Vault
 - HashiCorp Cloud Platform
 
-Пример для AWS KMS:
+Example for AWS KMS:
 
 ```yaml
 # helm values
@@ -193,21 +193,21 @@ server:
 
 ## Troubleshooting
 
-### Vault sealed после перезапуска
+### Vault sealed after restart
 
 ```bash
 kubectl exec -n vault vault-0 -- vault operator unseal $UNSEAL_KEY
 ```
 
-### VSO не синхронизирует секреты
+### VSO not syncing secrets
 
 ```bash
-# Проверка событий
+# Check events
 kubectl get events -n app --sort-by='.lastTimestamp' | grep -i vault
 
-# Проверка VaultAuth
+# Check VaultAuth
 kubectl describe vaultauth -n app
 
-# Логи VSO
+# VSO logs
 kubectl logs -n vault-secrets-operator -l app.kubernetes.io/name=vault-secrets-operator
 ```

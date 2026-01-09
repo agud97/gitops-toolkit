@@ -1,17 +1,17 @@
 # =============================================================================
 # Vault - Production Values
 # =============================================================================
-# Настройки для production окружения
-# ⚠️ Требует настройки auto-unseal и HA storage
+# Settings for production environment
+# ⚠️ Requires auto-unseal and HA storage configuration
 # =============================================================================
 
 server:
-  # HA mode для production
+  # HA mode for production
   ha:
     enabled: true
     replicas: 3
     
-    # Raft storage (встроенный HA)
+    # Raft storage (built-in HA)
     raft:
       enabled: true
       setNodeId: true
@@ -44,13 +44,13 @@ server:
           }
         }
         
-        # Auto-unseal с AWS KMS (пример)
+        # Auto-unseal with AWS KMS (example)
         # seal "awskms" {
         #   region     = "us-east-1"
         #   kms_key_id = "your-kms-key-id"
         # }
         
-        # Auto-unseal с GCP Cloud KMS (пример)
+        # Auto-unseal with GCP Cloud KMS (example)
         # seal "gcpckms" {
         #   project     = "your-project"
         #   region      = "global"
@@ -76,7 +76,7 @@ server:
       mountPath: /vault/userconfig/vault-tls
       readOnly: true
 
-  # Production ресурсы
+  # Production resources
   resources:
     requests:
       memory: 512Mi
@@ -89,7 +89,7 @@ server:
   dataStorage:
     enabled: true
     size: 50Gi
-    storageClass: fast-ssd  # Ваш production StorageClass
+    storageClass: fast-ssd  # Your production StorageClass
 
   # Audit logs
   auditStorage:
@@ -97,7 +97,7 @@ server:
     size: 50Gi
     storageClass: fast-ssd
 
-  # Affinity для распределения по нодам
+  # Affinity for node distribution
   affinity:
     podAntiAffinity:
       requiredDuringSchedulingIgnoredDuringExecution:
@@ -107,7 +107,7 @@ server:
               component: server
           topologyKey: kubernetes.io/hostname
 
-  # Tolerations (если есть dedicated nodes)
+  # Tolerations (if dedicated nodes exist)
   # tolerations:
   #   - key: "dedicated"
   #     operator: "Equal"
@@ -130,7 +130,7 @@ server:
         hosts:
           - vault.your-domain.com
 
-# Injector для production
+# Injector for production
 injector:
   replicas: 2
   

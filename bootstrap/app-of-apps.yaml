@@ -1,12 +1,12 @@
 # =============================================================================
 # App-of-Apps Root Application
 # =============================================================================
-# Этот файл управляет всеми остальными Applications.
-# Примените его после настройки репозитория в ArgoCD.
+# This file manages all other Applications using the App-of-Apps pattern.
+# Apply this after configuring the repository in ArgoCD.
 #
-# Использование:
-#   1. Отредактируйте repoURL на ваш форк/репозиторий
-#   2. Включите/выключите нужные приложения в applications/ директории
+# Usage:
+#   1. Update repoURL to your fork/repository
+#   2. Enable/disable applications in the applications/ directory
 #   3. kubectl apply -f bootstrap/app-of-apps.yaml
 # =============================================================================
 
@@ -18,17 +18,16 @@ metadata:
   finalizers:
     - resources-finalizer.argocd.argoproj.io
   annotations:
-    argocd.argoproj.io/sync-wave: "-1"  # Синхронизируется первым
+    argocd.argoproj.io/sync-wave: "-1"  # Syncs first
 spec:
-  project: gitops-toolkit  # Используем созданный AppProject
+  project: gitops-toolkit  # Uses the created AppProject
 
   source:
-    # ⚠️ ИЗМЕНИТЕ НА ВАШ РЕПОЗИТОРИЙ
     repoURL: https://github.com/agud97/gitops-toolkit.git
-    targetRevision: HEAD  # или конкретный tag/branch
-    path: applications    # Директория с Application манифестами
+    targetRevision: HEAD  # or specific tag/branch
+    path: applications    # Directory with Application manifests
 
-    # Используем directory recurse для автообнаружения всех yaml файлов
+    # Use directory recurse for auto-discovery of all yaml files
     directory:
       recurse: true
       include: '*.yaml'
@@ -40,9 +39,9 @@ spec:
 
   syncPolicy:
     automated:
-      selfHeal: true    # Автоматически исправляет drift
-      prune: true       # Удаляет ресурсы, которых нет в Git
-      allowEmpty: false # Не синхронизировать пустой source
+      selfHeal: true    # Automatically fixes drift
+      prune: true       # Removes resources not in Git
+      allowEmpty: false # Don't sync empty source
 
     syncOptions:
       - CreateNamespace=true
@@ -56,7 +55,7 @@ spec:
         factor: 2
         maxDuration: 3m
 
-  # Игнорировать различия в некоторых полях (опционально)
+  # Ignore differences in some fields (optional)
   ignoreDifferences:
     - group: apps
       kind: Deployment

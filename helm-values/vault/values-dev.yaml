@@ -1,12 +1,12 @@
 # =============================================================================
 # Vault - Development Values
 # =============================================================================
-# Настройки для development окружения
-# Используйте вместе с values-base.yaml
+# Settings for development environment
+# Use together with values-base.yaml
 # =============================================================================
 
 server:
-  # Standalone mode для dev
+  # Standalone mode for dev
   standalone:
     enabled: true
     config: |
@@ -28,11 +28,11 @@ server:
         disable_hostname = true
       }
 
-  # HA выключено для dev
+  # HA disabled for dev
   ha:
     enabled: false
 
-  # Минимальные ресурсы для dev
+  # Minimal resources for dev
   resources:
     requests:
       memory: 128Mi
@@ -41,7 +41,7 @@ server:
       memory: 256Mi
       cpu: 250m
 
-  # Маленький storage
+  # Small storage
   dataStorage:
     size: 5Gi
     storageClass: ""  # default storage class
@@ -55,7 +55,7 @@ server:
     #     paths:
     #       - /
 
-# Injector - минимальные ресурсы
+# Injector - minimal resources
 injector:
   resources:
     requests:
@@ -65,7 +65,7 @@ injector:
       memory: 128Mi
       cpu: 100m
 
-# Dev mode (не для production!)
+# Dev mode (not for production!)
 # server:
 #   dev:
 #     enabled: true

@@ -1,10 +1,10 @@
-# Kong Gateway - Руководство
+# Kong Gateway - Setup Guide
 
-## Обзор
+## Overview
 
-Kong Gateway развёрнут в режиме DBless - конфигурация хранится в ConfigMap и управляется через Git.
+Kong Gateway is deployed in DBless mode - configuration is stored in ConfigMap and managed through Git.
 
-## Архитектура
+## Architecture
 
 ```
 ┌─────────────────────────────────────────────────────────────────┐
@@ -35,19 +35,19 @@ Kong Gateway развёрнут в режиме DBless - конфигураци�
 └─────────────────────────────────────────────────────────────────┘
 ```
 
-## Установка
+## Installation
 
 ```bash
-# Применение Application
+# Apply Application
 kubectl apply -f applications/kong/application.yaml
 
-# Применение конфигурации маршрутов
+# Apply route configuration
 kubectl apply -f manifests/custom/kong-config/kong-config.yaml
 ```
 
 ## Declarative Configuration
 
-### Базовая структура
+### Basic Structure
 
 ```yaml
 _format_version: "3.0"
@@ -70,16 +70,16 @@ plugins:
       minute: 100
 ```
 
-### Добавление нового сервиса
+### Adding a New Service
 
-1. Отредактируйте `manifests/custom/kong-config/kong-config.yaml`
-2. Добавьте новый сервис:
+1. Edit `manifests/custom/kong-config/kong-config.yaml`
+2. Add the new service:
 
 ```yaml
 services:
-  # Существующие сервисы...
+  # Existing services...
   
-  # Новый сервис
+  # New service
   - name: new-service
     host: new-service.app.svc.cluster.local
     port: 8080
@@ -99,8 +99,8 @@ services:
         preserve_host: false
 ```
 
-3. Commit и push в Git
-4. ArgoCD автоматически синхронизирует изменения
+3. Commit and push to Git
+4. ArgoCD will automatically sync changes
 
 ## Plugins
 
@@ -109,7 +109,7 @@ services:
 ```yaml
 plugins:
   - name: rate-limiting
-    service: my-service  # Или route, consumer
+    service: my-service  # Or route, consumer
     config:
       minute: 100
       hour: 1000
@@ -191,7 +191,7 @@ plugins:
       content_type: application/json
 ```
 
-## Upstreams и Load Balancing
+## Upstreams and Load Balancing
 
 ```yaml
 upstreams:
@@ -224,23 +224,26 @@ upstreams:
 
 services:
   - name: my-service
-    host: my-upstream  # Ссылка на upstream
+    host: my-upstream  # Reference to upstream
     port: 8080
 ```
 
-## Команды управления
+## Management Commands
 
 ```bash
-# Проверка статуса Kong
+# Check Kong status
 kubectl get pods -n kong
 
-# Логи
+# Logs
 kubectl logs -n kong -l app.kubernetes.io/name=kong
 
-# Проверка конфигурации
+# Check configuration
+kubectl get configmap -n kong
+
+# Verify configuration is loaded
 kubectl exec -it -n kong deploy/kong-kong -- kong config db_export
 
-# Проверка маршрутов
+# Check routes
 kubectl exec -it -n kong deploy/kong-kong -- kong config db_export | grep -A 10 "routes:"
 
 # Health check
@@ -250,37 +253,37 @@ curl http://localhost:8000/status
 
 ## Troubleshooting
 
-### Kong не запускается
+### Kong not starting
 
 ```bash
-# Проверка событий
+# Check events
 kubectl get events -n kong --sort-by='.lastTimestamp'
 
-# Проверка ConfigMap
+# Check ConfigMap
 kubectl get configmap -n kong kong-declarative-config -o yaml
 
-# Валидация конфигурации
+# Validate configuration
 kubectl exec -it -n kong deploy/kong-kong -- kong config parse /kong_dbless/kong.yml
 ```
 
-### Маршрут не работает
+### Route not working
 
 ```bash
-# Проверка что конфигурация загружена
+# Check that configuration is loaded
 kubectl exec -it -n kong deploy/kong-kong -- kong config db_export
 
-# Тест маршрута
+# Test route
 kubectl port-forward svc/kong-kong-proxy -n kong 8000:80
 curl -v http://localhost:8000/api/v1/myservice
 
-# Проверка логов
+# Check logs
 kubectl logs -n kong -l app.kubernetes.io/name=kong --tail=100
 ```
 
-### Upstream недоступен
+### Upstream unavailable
 
 ```bash
-# Проверка что backend доступен из Kong pod
+# Check that backend is accessible from Kong pod
 kubectl exec -it -n kong deploy/kong-kong -- \
   curl -v http://backend.app.svc.cluster.local:8080/health
 ```

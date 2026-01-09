@@ -2,7 +2,7 @@
 # GitOps Toolkit - .gitignore
 # =============================================================================
 
-# Секреты и credentials
+# Secrets and credentials
 *.key
 *.pem
 *.crt
@@ -38,17 +38,17 @@ Thumbs.db
 *.tgz
 charts/*/charts/
 
-# Временные файлы
+# Temporary files
 *.tmp
 *.temp
 *.log
 *.bak
 
-# Node (если есть скрипты)
+# Node (if scripts exist)
 node_modules/
 npm-debug.log
 
-# Python (если есть скрипты)
+# Python (if scripts exist)
 __pycache__/
 *.py[cod]
 .venv/
@@ -74,5 +74,5 @@ coverage/
 # ArgoCD local testing
 argocd-local/
 
-# Disabled applications (опционально, можно оставить)
+# Disabled applications (optional, can be kept)
 # *-disabled.yaml

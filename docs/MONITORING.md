@@ -1,15 +1,15 @@
-# Мониторинг и Observability - Руководство
+# Monitoring & Observability - Setup Guide
 
-## Обзор
+## Overview
 
-Стек мониторинга включает:
-- **VictoriaMetrics** - хранение метрик (Prometheus-compatible)
-- **VMAgent** - сбор метрик
-- **VMAlert** - алертинг
-- **Grafana** - визуализация
-- **Victoria Logs** - централизованные логи
+The monitoring stack includes:
+- **VictoriaMetrics** - metrics storage (Prometheus-compatible)
+- **VMAgent** - metrics collection
+- **VMAlert** - alerting
+- **Grafana** - visualization
+- **Victoria Logs** - centralized logging
 
-## Архитектура
+## Architecture
 
 ```
 ┌─────────────────────────────────────────────────────────────────────────┐
@@ -53,7 +53,7 @@
 └─────────────────────────────────────────────────────────────────────────┘
 ```
 
-## Установка
+## Installation
 
 ### VictoriaMetrics Stack
 
@@ -67,7 +67,7 @@ kubectl apply -f applications/victoria-metrics/application.yaml
 kubectl apply -f applications/victoria-logs/application.yaml
 ```
 
-### Отдельная Grafana (опционально)
+### Standalone Grafana (optional)
 
 ```bash
 kubectl apply -f applications/grafana/application.yaml
@@ -75,16 +75,16 @@ kubectl apply -f applications/grafana/application.yaml
 
 ## Endpoints
 
-| Компонент | URL | Назначение |
-|-----------|-----|------------|
-| VictoriaMetrics | `http://vmsingle-victoria-metrics.monitoring:8429` | Запросы метрик |
-| VMAgent | `http://vmagent-victoria-metrics.monitoring:8429` | Прием метрик |
-| Grafana | `http://grafana.monitoring:80` | UI дашборды |
-| Victoria Logs | `http://victoria-logs.victoria-logs:9428` | Логи |
+| Component | URL | Purpose |
+|-----------|-----|---------|
+| VictoriaMetrics | `http://vmsingle-victoria-metrics.monitoring:8429` | Metrics queries |
+| VMAgent | `http://vmagent-victoria-metrics.monitoring:8429` | Metrics ingestion |
+| Grafana | `http://grafana.monitoring:80` | UI dashboards |
+| Victoria Logs | `http://victoria-logs.victoria-logs:9428` | Logs |
 
 ## Grafana
 
-### Доступ
+### Access
 
 ```bash
 # Port-forward
@@ -92,12 +92,12 @@ kubectl port-forward svc/victoria-metrics-grafana -n monitoring 3000:80
 
 # URL: http://localhost:3000
 # User: admin
-# Password: получить из secret
+# Password: get from secret
 kubectl get secret -n monitoring victoria-metrics-grafana \
   -o jsonpath='{.data.admin-password}' | base64 -d
 ```
 
-### Добавление Datasource
+### Adding Datasource
 
 ```yaml
 apiVersion: v1
@@ -118,7 +118,7 @@ data:
         isDefault: true
 ```
 
-### Dashboard через ConfigMap
+### Dashboard via ConfigMap
 
 ```yaml
 apiVersion: v1
@@ -138,7 +138,7 @@ data:
 
 ## ServiceMonitor
 
-Для мониторинга своих приложений создайте ServiceMonitor:
+To monitor your applications, create a ServiceMonitor:
 
 ```yaml
 apiVersion: monitoring.coreos.com/v1
@@ -147,7 +147,7 @@ metadata:
   name: my-app-metrics
   namespace: monitoring
   labels:
-    release: victoria-metrics  # Должен совпадать с selector VMAgent
+    release: victoria-metrics  # Must match VMAgent selector
 spec:
   namespaceSelector:
     matchNames:
@@ -163,7 +163,7 @@ spec:
 
 ## PodMonitor
 
-Для подов без Service:
+For pods without a Service:
 
 ```yaml
 apiVersion: monitoring.coreos.com/v1
@@ -186,7 +186,7 @@ spec:
 
 ## VMAlert Rules
 
-### Создание правила
+### Creating Rules
 
 ```yaml
 apiVersion: operator.victoriametrics.com/v1beta1
@@ -221,47 +221,47 @@ spec:
 
 ## Victoria Logs
 
-### Запросы логов
+### Querying Logs
 
 ```bash
-# Query через API
+# Query via API
 curl -G 'http://victoria-logs:9428/select/logsql/query' \
   --data-urlencode 'query=kubernetes_namespace_name:app AND error'
 
-# С лимитом
+# With limit
 curl -G 'http://victoria-logs:9428/select/logsql/query' \
   --data-urlencode 'query=kubernetes_namespace_name:app' \
   --data-urlencode 'limit=100'
 ```
 
-### LogsQL примеры
+### LogsQL Examples
 
 ```
-# Все логи из namespace
+# All logs from namespace
 kubernetes_namespace_name:app
 
-# Ошибки
+# Errors
 kubernetes_namespace_name:app AND _msg:error
 
-# По поду
+# By pod
 kubernetes_pod_name:my-app-*
 
-# За последний час
+# Last hour
 kubernetes_namespace_name:app AND _time:1h
 
-# С регулярным выражением
+# With regex
 kubernetes_namespace_name:app AND _msg:~"error|exception|failed"
 ```
 
-## PromQL Примеры
+## PromQL Examples
 
 ### CPU
 
 ```promql
-# CPU usage по поду
+# CPU usage by pod
 rate(container_cpu_usage_seconds_total{namespace="app"}[5m])
 
-# CPU usage в процентах от request
+# CPU usage as percentage of request
 sum(rate(container_cpu_usage_seconds_total{namespace="app"}[5m])) by (pod)
 / sum(kube_pod_container_resource_requests{resource="cpu", namespace="app"}) by (pod)
 * 100
@@ -273,7 +273,7 @@ sum(rate(container_cpu_usage_seconds_total{namespace="app"}[5m])) by (pod)
 # Memory usage
 container_memory_working_set_bytes{namespace="app"}
 
-# Memory usage в процентах от limit
+# Memory usage as percentage of limit
 sum(container_memory_working_set_bytes{namespace="app"}) by (pod)
 / sum(kube_pod_container_resource_limits{resource="memory", namespace="app"}) by (pod)
 * 100
@@ -297,40 +297,40 @@ histogram_quantile(0.99,
 
 ## Troubleshooting
 
-### Метрики не появляются
+### Metrics not appearing
 
 ```bash
-# Проверка targets в VMAgent
+# Check targets in VMAgent
 kubectl port-forward svc/vmagent-victoria-metrics -n monitoring 8429:8429
-# Откройте http://localhost:8429/targets
+# Open http://localhost:8429/targets
 
-# Проверка что приложение отдает метрики
+# Check that application exposes metrics
 kubectl port-forward svc/my-app -n app 8080:8080
 curl http://localhost:8080/metrics
 
-# Логи VMAgent
+# VMAgent logs
 kubectl logs -n monitoring -l app.kubernetes.io/name=vmagent
 ```
 
-### Grafana не показывает данные
+### Grafana not showing data
 
 ```bash
-# Проверка datasource
+# Check datasource
 kubectl exec -it -n monitoring deploy/grafana -- \
   curl -s http://vmsingle-victoria-metrics:8429/api/v1/query?query=up
 
-# Проверка что метрики есть
+# Check that metrics exist
 curl -G 'http://localhost:8429/api/v1/query' \
   --data-urlencode 'query=up'
 ```
 
-### Victoria Logs не собирает логи
+### Victoria Logs not collecting
 
 ```bash
-# Проверка Fluent Bit
+# Check Fluent Bit
 kubectl logs -n victoria-logs -l app.kubernetes.io/name=fluent-bit
 
-# Проверка что логи доступны
+# Check that logs are available
 curl -G 'http://victoria-logs:9428/select/logsql/query' \
   --data-urlencode 'query=*' \
   --data-urlencode 'limit=10'

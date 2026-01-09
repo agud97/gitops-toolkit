@@ -1,3 +1,9 @@
+# =============================================================================
+# ArgoCD AppProject - GitOps Toolkit
+# =============================================================================
+# Defines project boundaries and access control for applications
+# =============================================================================
+
 apiVersion: argoproj.io/v1alpha1
 kind: AppProject
 metadata:
@@ -8,29 +14,39 @@ metadata:
 spec:
   description: GitOps Toolkit - Reusable Infrastructure Components
 
-  # Источники
+  # Source repositories
   sourceRepos:
-    - '*'  # Замените на ваш репозиторий: https://github.com/agud97/gitops-toolkit.git
+    - 'https://github.com/agud97/gitops-toolkit.git'
+    - 'https://helm.releases.hashicorp.com'
+    - 'https://charts.konghq.com'
+    - 'https://strimzi.io/charts/'
+    - 'https://victoriametrics.github.io/helm-charts/'
+    - 'https://cloudnative-pg.github.io/charts'
+    - 'https://kubernetes.github.io/ingress-nginx'
+    - 'https://charts.jetstack.io'
+    - 'https://charts.bitnami.com/bitnami'
+    - 'https://grafana.github.io/helm-charts'
+    - 'https://centrifugal.github.io/helm-charts'
 
-  # Разрешённые destinations
+  # Allowed destinations
   destinations:
     - namespace: '*'
       server: https://kubernetes.default.svc
-    # Для multi-cluster добавьте другие кластеры:
+    # For multi-cluster, add other clusters:
     # - namespace: '*'
     #   server: https://your-cluster-api-server
 
-  # Разрешённые cluster-scoped ресурсы
+  # Allowed cluster-scoped resources
   clusterResourceWhitelist:
     - group: '*'
       kind: '*'
 
-  # Разрешённые namespace-scoped ресурсы
+  # Allowed namespace-scoped resources
   namespaceResourceWhitelist:
     - group: '*'
       kind: '*'
 
-  # Роли проекта (опционально)
+  # Project roles (optional)
   roles:
     - name: admin
       description: Full access to project
@@ -40,7 +56,7 @@ spec:
         - my-admin-group
 
     - name: developer
-      description: Read-only access
+      description: Read-only access with sync permissions
       policies:
         - p, proj:gitops-toolkit:developer, applications, get, gitops-toolkit/*, allow
         - p, proj:gitops-toolkit:developer, applications, sync, gitops-toolkit/*, allow

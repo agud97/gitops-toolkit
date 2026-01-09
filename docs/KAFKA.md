@@ -1,10 +1,10 @@
-# Apache Kafka (Strimzi) - Руководство
+# Apache Kafka (Strimzi) - Setup Guide
 
-## Обзор
+## Overview
 
-Apache Kafka развёртывается через Strimzi Operator в режиме KRaft (без ZooKeeper).
+Apache Kafka is deployed via Strimzi Operator in KRaft mode (without ZooKeeper).
 
-## Архитектура
+## Architecture
 
 ```
 ┌─────────────────────────────────────────────────────────────────┐
@@ -35,44 +35,44 @@ Apache Kafka развёртывается через Strimzi Operator в реж�
 └─────────────────────────────────────────────────────────────────┘
 ```
 
-## Установка
+## Installation
 
-### 1. Установка Strimzi Operator
+### 1. Install Strimzi Operator
 
 ```bash
 kubectl apply -f applications/kafka/operator.yaml
 ```
 
-### 2. Создание Kafka кластера
+### 2. Create Kafka Cluster
 
 ```bash
 kubectl apply -f applications/kafka/cluster.yaml
 ```
 
-### 3. Проверка статуса
+### 3. Check Status
 
 ```bash
-# Статус кластера
+# Cluster status
 kubectl get kafka -n kafka
 
-# Поды
+# Pods
 kubectl get pods -n kafka
 
-# Ожидание готовности
+# Wait for readiness
 kubectl wait kafka/kafka-cluster --for=condition=Ready --timeout=300s -n kafka
 ```
 
 ## Bootstrap Servers
 
 ```
-# Internal (из кластера)
+# Internal (from within the cluster)
 Plain:  kafka-cluster-kafka-bootstrap.kafka.svc.cluster.local:9092
 TLS:    kafka-cluster-kafka-bootstrap.kafka.svc.cluster.local:9093
 ```
 
-## Управление топиками
+## Topic Management
 
-### Создание топика
+### Create Topic
 
 ```yaml
 apiVersion: kafka.strimzi.io/v1beta2
@@ -86,7 +86,7 @@ spec:
   partitions: 3
   replicas: 3
   config:
-    retention.ms: 604800000      # 7 дней
+    retention.ms: 604800000      # 7 days
     segment.bytes: 1073741824    # 1GB
     cleanup.policy: delete
 ```
@@ -95,27 +95,27 @@ spec:
 kubectl apply -f topic.yaml
 ```
 
-### Через CLI
+### Via CLI
 
 ```bash
-# Список топиков
+# List topics
 kubectl exec -it kafka-cluster-combined-0 -n kafka -- \
   bin/kafka-topics.sh --bootstrap-server localhost:9092 --list
 
-# Описание топика
+# Describe topic
 kubectl exec -it kafka-cluster-combined-0 -n kafka -- \
   bin/kafka-topics.sh --bootstrap-server localhost:9092 \
   --describe --topic my-topic
 
-# Создание топика (императивно)
+# Create topic (imperative)
 kubectl exec -it kafka-cluster-combined-0 -n kafka -- \
   bin/kafka-topics.sh --bootstrap-server localhost:9092 \
   --create --topic test-topic --partitions 3 --replication-factor 3
 ```
 
-## Управление пользователями
+## User Management
 
-### Создание пользователя с SCRAM-SHA-512
+### Create User with SCRAM-SHA-512
 
 ```yaml
 apiVersion: kafka.strimzi.io/v1beta2
@@ -131,7 +131,7 @@ spec:
   authorization:
     type: simple
     acls:
-      # Чтение
+      # Read access
       - resource:
           type: topic
           name: my-topic
@@ -140,7 +140,7 @@ spec:
           - Read
           - Describe
         host: "*"
-      # Запись
+      # Write access
       - resource:
           type: topic
           name: my-topic
@@ -158,10 +158,10 @@ spec:
         host: "*"
 ```
 
-### Получение credentials
+### Get Credentials
 
 ```bash
-# Пароль хранится в Secret
+# Password is stored in Secret
 kubectl get secret my-user -n kafka -o jsonpath='{.data.password}' | base64 -d
 ```
 
@@ -188,11 +188,11 @@ spec:
     value.converter: org.apache.kafka.connect.json.JsonConverter
 ```
 
-## Мониторинг
+## Monitoring
 
 ### Kafka Exporter Metrics
 
-Если включен `kafkaExporter`, метрики доступны по:
+If `kafkaExporter` is enabled, metrics are available at:
 ```
 http://kafka-cluster-kafka-exporter.kafka.svc.cluster.local:9404/metrics
 ```
@@ -215,7 +215,7 @@ spec:
       path: /metrics
 ```
 
-## Тестирование
+## Testing
 
 ### Producer
 
@@ -238,7 +238,7 @@ kubectl exec -it kafka-cluster-combined-0 -n kafka -- \
 
 ## Troubleshooting
 
-### Проверка логов
+### Check Logs
 
 ```bash
 # Broker logs
@@ -248,7 +248,7 @@ kubectl logs kafka-cluster-combined-0 -n kafka
 kubectl logs -n kafka -l strimzi.io/kind=cluster-operator
 ```
 
-### Consumer lag
+### Consumer Lag
 
 ```bash
 kubectl exec -it kafka-cluster-combined-0 -n kafka -- \
@@ -257,7 +257,7 @@ kubectl exec -it kafka-cluster-combined-0 -n kafka -- \
   --describe --group my-consumer-group
 ```
 
-### Перебалансировка партиций
+### Partition Reassignment
 
 ```bash
 kubectl exec -it kafka-cluster-combined-0 -n kafka -- \
