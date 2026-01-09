@@ -1,0 +1,43 @@
+# =============================================================================
+# Keycloak - Base Values (для operator-based deployment)
+# =============================================================================
+# Keycloak использует Operator, поэтому это пример конфигурации,
+# а не Helm values. Используйте manifests/custom/keycloak/keycloak.yaml
+# =============================================================================
+
+# Эти значения используются для справки при настройке Keycloak CR
+
+keycloak:
+  instances: 1
+
+  # Database settings
+  db:
+    vendor: postgres
+    port: 5432
+    database: keycloak
+
+  # HTTP settings
+  http:
+    httpEnabled: true
+    httpPort: 8080
+    httpsPort: 8443
+
+  # Proxy settings
+  proxy:
+    headers: xforwarded
+
+  # Additional options
+  additionalOptions:
+    metrics-enabled: "true"
+    health-enabled: "true"
+    log-level: "INFO"
+    cache: "ispn"
+
+  # Resources
+  resources:
+    requests:
+      cpu: 250m
+      memory: 512Mi
+    limits:
+      cpu: 1000m
+      memory: 1Gi

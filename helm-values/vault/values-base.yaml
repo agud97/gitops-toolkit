@@ -2,15 +2,16 @@
 # Vault - Base Values
 # =============================================================================
 # Common settings inherited by all environments
+# Production-ready configuration based on real-world deployments
 # =============================================================================
 
 global:
   enabled: true
-  tlsDisable: true
+  tlsDisable: true  # Set to false in production with proper TLS
 
 server:
   enabled: true
-  
+
   image:
     repository: hashicorp/vault
     tag: "1.20.1"
@@ -36,26 +37,62 @@ server:
     type: ClusterIP
     port: 8200
 
+  # Standalone mode (default for simplicity)
+  standalone:
+    enabled: true
+    config: |
+      ui = true
+
+      listener "tcp" {
+        tls_disable = 1
+        address = "[::]:8200"
+        cluster_address = "[::]:8201"
+      }
+
+      storage "file" {
+        path = "/vault/data"
+      }
+
   # Data storage
   dataStorage:
     enabled: true
     size: 10Gi
+    # storageClass: ""  # Specify your StorageClass
 
-  # Audit storage (optional)
+  # Audit storage (recommended for production)
   auditStorage:
     enabled: false
     size: 10Gi
+
+  # Resources
+  resources:
+    requests:
+      memory: 256Mi
+      cpu: 250m
+    limits:
+      memory: 512Mi
+      cpu: 500m
+
+  # Ingress (disabled by default)
+  ingress:
+    enabled: false
+    # ingressClassName: nginx
+    # annotations: {}
+    # hosts:
+    #   - host: vault.example.com
+    #     paths:
+    #       - /
 
 # UI
 ui:
   enabled: true
   serviceType: ClusterIP
 
-# Injector
+# Injector (Vault Agent Injector)
 injector:
   enabled: true
   replicas: 1
-  
+
   resources:
     requests:
       memory: 256Mi

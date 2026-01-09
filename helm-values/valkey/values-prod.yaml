@@ -1,0 +1,42 @@
+# =============================================================================
+# Valkey (Redis-compatible) - Production Values
+# =============================================================================
+
+architecture: replication
+
+master:
+  persistence:
+    size: 20Gi
+    storageClass: fast-ssd
+  resources:
+    requests:
+      cpu: 200m
+      memory: 256Mi
+    limits:
+      cpu: 1000m
+      memory: 1Gi
+
+replica:
+  replicaCount: 2
+  persistence:
+    size: 20Gi
+    storageClass: fast-ssd
+  resources:
+    requests:
+      cpu: 200m
+      memory: 256Mi
+    limits:
+      cpu: 1000m
+      memory: 1Gi
+
+# Affinity
+master:
+  affinity:
+    podAntiAffinity:
+      preferredDuringSchedulingIgnoredDuringExecution:
+        - weight: 100
+          podAffinityTerm:
+            labelSelector:
+              matchLabels:
+                app.kubernetes.io/name: valkey
+            topologyKey: kubernetes.io/hostname

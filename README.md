@@ -1,23 +1,20 @@
-# 🚀 GitOps Toolkit - Reusable ArgoCD Applications
+# GitOps Toolkit - Reusable ArgoCD Applications
 
-[![ArgoCD](https://img.shields.io/badge/ArgoCD-Ready-blue)](https://argo-cd.readthedocs.io/)
-[![Kubernetes](https://img.shields.io/badge/Kubernetes-1.28+-brightgreen)](https://kubernetes.io/)
-[![License](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
+Production-ready ArgoCD Applications for rapid deployment of infrastructure services in Kubernetes.
 
-A collection of production-ready ArgoCD Applications for rapid deployment of infrastructure services in Kubernetes.
+## Table of Contents
 
-## 📋 Table of Contents
+- [Quick Start](#quick-start)
+- [Project Structure](#project-structure)
+- [Available Components](#available-components)
+- [Usage](#usage)
+- [Integration Examples](#integration-examples)
+- [Customization](#customization)
 
-- [Quick Start](#-quick-start)
-- [Project Structure](#-project-structure)
-- [Available Components](#-available-components)
-- [Usage](#-usage)
-- [Customization](#-customization)
-
-## ⚡ Quick Start
+## Quick Start
 
 ```bash
-# 1. Fork or clone the repository
+# 1. Clone the repository
 git clone https://github.com/agud97/gitops-toolkit.git
 cd gitops-toolkit
 
@@ -28,10 +25,9 @@ kubectl apply -n argocd -f https://raw.githubusercontent.com/argoproj/argo-cd/st
 # 3. Add repository to ArgoCD
 argocd repo add https://github.com/agud97/gitops-toolkit.git
 
-# 4. Apply the applications you need
+# 4. Apply the bootstrap
+kubectl apply -f bootstrap/project.yaml
 kubectl apply -f bootstrap/app-of-apps.yaml
-# or selectively:
-kubectl apply -f applications/vault/application.yaml
 ```
 
 ## 📁 Project Structure
@@ -140,17 +136,64 @@ cp -r applications/vault/ /path/to/your/gitops-repo/apps/
 cp -r helm-values/vault/ /path/to/your/gitops-repo/values/
 ```
 
-## ⚙️ Customization
+## Integration Examples
 
-### Environment Variables
+### VSO + CloudNativePG (Database Secrets from Vault)
 
-Each component supports customization through:
+Sync database credentials from Vault to Kubernetes Secrets for CNPG managed roles:
 
-1. **Helm Values** - `helm-values/<component>/values-<env>.yaml`
-2. **Kustomize Overlays** - `overlays/<env>/`
-3. **ArgoCD Application parameters** - directly in Application spec
+```
+manifests/custom/vso-cnpg-integration/
+├── README.md                    # Setup instructions
+├── vault-setup.yaml             # VaultConnection + VaultAuth
+├── vso-cnpg-secrets.yaml        # VaultStaticSecret resources
+└── pg-cluster-with-vso.yaml     # CNPG Cluster using VSO secrets
+```
 
-### Example: Customizing Vault
+See [VSO-CNPG Integration Guide](manifests/custom/vso-cnpg-integration/README.md).
+
+### Kong DBless Configuration
+
+Declarative routing configuration for Kong Gateway:
+
+```
+manifests/custom/kong-config/
+└── kong-config.yaml             # ConfigMap with routes
+```
+
+Example services: user-service, account-service, wallet-service, payment-service, admin-backend.
+
+## Customization
+
+### Multi-Source Applications
+
+Applications use ArgoCD multi-source pattern for separate Helm values:
+
+```yaml
+sources:
+  - repoURL: https://github.com/agud97/gitops-toolkit.git
+    targetRevision: HEAD
+    ref: values
+
+  - repoURL: https://helm.releases.hashicorp.com
+    chart: vault
+    targetRevision: 0.30.0
+    helm:
+      valueFiles:
+        - $values/helm-values/vault/values-base.yaml
+        - $values/helm-values/vault/values-prod.yaml
+```
+
+### Environment-Specific Values
+
+```
+helm-values/<component>/
+├── values-base.yaml    # Common settings
+├── values-dev.yaml     # Development overrides
+└── values-prod.yaml    # Production overrides
+```
+
+### Example: Production Vault
 
 ```yaml
 # helm-values/vault/values-prod.yaml
@@ -158,37 +201,26 @@ server:
   ha:
     enabled: true
     replicas: 3
-  resources:
-    requests:
-      memory: 256Mi
-      cpu: 250m
   dataStorage:
     size: 50Gi
     storageClass: fast-ssd
 ```
 
-## 🔒 Security
+## Security
 
-⚠️ **Important:**
 - Never store secrets in Git
-- Use External Secrets Operator or VSO for secrets synchronization
-- Scan repository for leaks (gitleaks, trufflehog)
+- Use Vault Secrets Operator (VSO) or External Secrets Operator
+- Placeholder secrets are marked with `CHANGE_ME` comments
+- All sensitive domains use `example.com` placeholder
 
-## 📚 Documentation
+## Documentation
 
+- [VSO-CNPG Integration](manifests/custom/vso-cnpg-integration/README.md)
 - [Vault Setup Guide](docs/VAULT.md)
 - [Kafka Configuration](docs/KAFKA.md)
 - [Kong Routes](docs/KONG.md)
 - [Monitoring Stack](docs/MONITORING.md)
-- [Quick Start Guide](docs/QUICK-START.md)
 
-## 🤝 Contributing
+## License
 
-1. Fork the repository
-2. Create a feature branch
-3. Commit your changes
-4. Push and create a Pull Request
-
-## 📄 License
-
-MIT License - feel free to use!
+MIT License

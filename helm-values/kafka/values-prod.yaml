@@ -1,0 +1,24 @@
+# =============================================================================
+# Strimzi Kafka Operator - Production Values
+# =============================================================================
+
+replicas: 2
+
+resources:
+  requests:
+    cpu: 500m
+    memory: 512Mi
+  limits:
+    cpu: 2000m
+    memory: 1Gi
+
+# HA affinity
+affinity:
+  podAntiAffinity:
+    preferredDuringSchedulingIgnoredDuringExecution:
+      - weight: 100
+        podAffinityTerm:
+          labelSelector:
+            matchLabels:
+              name: strimzi-cluster-operator
+          topologyKey: kubernetes.io/hostname

@@ -1,0 +1,36 @@
+# =============================================================================
+# CloudNativePG Operator - Base Values
+# =============================================================================
+
+# Replicas
+replicaCount: 1
+
+# Resources
+resources:
+  requests:
+    cpu: 100m
+    memory: 128Mi
+  limits:
+    cpu: 500m
+    memory: 256Mi
+
+# Monitoring
+monitoring:
+  podMonitorEnabled: true
+  grafanaDashboard:
+    create: true
+    namespace: monitoring  # Namespace для Grafana dashboards
+
+# Service Account
+serviceAccount:
+  create: true
+
+# CRD management
+crds:
+  create: true
+
+# Config
+config:
+  # Inherited annotations for all managed resources
+  INHERITED_ANNOTATIONS: ""
+  INHERITED_LABELS: ""

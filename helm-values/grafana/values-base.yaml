@@ -1,0 +1,65 @@
+# =============================================================================
+# Grafana - Base Values
+# =============================================================================
+
+# Admin credentials
+adminUser: admin
+# adminPassword: ""  # Генерируется автоматически
+
+# Persistence
+persistence:
+  enabled: true
+  size: 5Gi
+
+# Resources
+resources:
+  requests:
+    cpu: 100m
+    memory: 128Mi
+  limits:
+    cpu: 500m
+    memory: 512Mi
+
+# Datasources
+datasources:
+  datasources.yaml:
+    apiVersion: 1
+    datasources:
+      - name: VictoriaMetrics
+        type: prometheus
+        url: http://vmsingle-victoria-metrics-k8s-stack.monitoring.svc.cluster.local:8429
+        access: proxy
+        isDefault: true
+      - name: VictoriaLogs
+        type: victoriametrics-logs-datasource
+        url: http://victoria-logs.victoria-logs.svc.cluster.local:9428
+        access: proxy
+
+# Dashboards
+dashboardProviders:
+  dashboardproviders.yaml:
+    apiVersion: 1
+    providers:
+      - name: default
+        orgId: 1
+        folder: ''
+        type: file
+        disableDeletion: false
+        editable: true
+        options:
+          path: /var/lib/grafana/dashboards/default
+
+# Sidecar for dashboards
+sidecar:
+  dashboards:
+    enabled: true
+    searchNamespace: ALL
+  datasources:
+    enabled: true
+
+# Ingress
+ingress:
+  enabled: false
+  # ingressClassName: nginx
+  # hosts:
+  #   - grafana.example.com

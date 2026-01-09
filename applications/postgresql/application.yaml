@@ -79,7 +79,6 @@ spec:
   project: gitops-toolkit
 
   source:
-    # ⚠️ ИЗМЕНИТЕ НА ВАШ РЕПОЗИТОРИЙ
     repoURL: https://github.com/agud97/gitops-toolkit.git
     targetRevision: HEAD
     path: manifests/custom/postgresql-cluster

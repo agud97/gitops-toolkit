@@ -1,0 +1,28 @@
+# =============================================================================
+# Vault Secrets Operator - Production Values
+# =============================================================================
+
+controller:
+  replicas: 2
+
+  resources:
+    requests:
+      cpu: 100m
+      memory: 128Mi
+    limits:
+      cpu: 1000m
+      memory: 512Mi
+
+  # Affinity for HA
+  affinity:
+    podAntiAffinity:
+      preferredDuringSchedulingIgnoredDuringExecution:
+        - weight: 100
+          podAffinityTerm:
+            labelSelector:
+              matchLabels:
+                app.kubernetes.io/name: vault-secrets-operator
+            topologyKey: kubernetes.io/hostname
+
+  manager:
+    maxConcurrentReconciles: 10

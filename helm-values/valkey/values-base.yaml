@@ -1,0 +1,37 @@
+# =============================================================================
+# Valkey (Redis-compatible) - Base Values
+# =============================================================================
+
+# Architecture: standalone or replication
+architecture: standalone
+
+# Auth
+auth:
+  enabled: true
+  password: ""  # Генерируется или из Vault
+
+# Master
+master:
+  persistence:
+    enabled: true
+    size: 8Gi
+  resources:
+    requests:
+      cpu: 100m
+      memory: 128Mi
+    limits:
+      cpu: 500m
+      memory: 512Mi
+
+# Replica (для replication architecture)
+replica:
+  replicaCount: 0
+  persistence:
+    enabled: true
+    size: 8Gi
+
+# Metrics
+metrics:
+  enabled: true
+  serviceMonitor:
+    enabled: true

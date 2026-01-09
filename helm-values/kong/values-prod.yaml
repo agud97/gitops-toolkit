@@ -1,0 +1,63 @@
+# =============================================================================
+# Kong Gateway - Production Values
+# =============================================================================
+
+# Production replicas
+replicaCount: 3
+
+# LoadBalancer for external access
+proxy:
+  type: LoadBalancer
+  annotations: {}
+    # For cloud providers:
+    # service.beta.kubernetes.io/aws-load-balancer-type: nlb
+    # service.beta.kubernetes.io/azure-load-balancer-internal: "false"
+
+# Production resources
+resources:
+  requests:
+    cpu: 500m
+    memory: 512Mi
+  limits:
+    cpu: 2000m
+    memory: 2Gi
+
+# Autoscaling
+autoscaling:
+  enabled: true
+  minReplicas: 3
+  maxReplicas: 10
+  targetCPUUtilizationPercentage: 70
+  targetMemoryUtilizationPercentage: 80
+
+# Affinity for spreading across nodes
+affinity:
+  podAntiAffinity:
+    preferredDuringSchedulingIgnoredDuringExecution:
+      - weight: 100
+        podAffinityTerm:
+          labelSelector:
+            matchExpressions:
+              - key: app.kubernetes.io/name
+                operator: In
+                values:
+                  - kong
+          topologyKey: kubernetes.io/hostname
+
+# Production tuning
+env:
+  # Performance
+  nginx_worker_processes: "auto"
+  upstream_keepalive_pool_size: "512"
+  upstream_keepalive_max_requests: "1000"
+  upstream_keepalive_idle_timeout: "60"
+  # Timeouts
+  nginx_proxy_connect_timeout: "60s"
+  nginx_proxy_read_timeout: "60s"
+  nginx_proxy_send_timeout: "60s"
+
+# Pod security context
+podSecurityContext:
+  runAsNonRoot: true
+  runAsUser: 1000
+  fsGroup: 1000

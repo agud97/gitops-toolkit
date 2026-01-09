@@ -1,0 +1,28 @@
+# =============================================================================
+# VaultConnection - для cnpg-system namespace
+# =============================================================================
+apiVersion: secrets.hashicorp.com/v1beta1
+kind: VaultConnection
+metadata:
+  name: vault-connection
+  namespace: cnpg-system
+spec:
+  address: http://vault.vault.svc.cluster.local:8200
+  skipTLSVerify: false
+
+---
+# =============================================================================
+# VaultAuth - Kubernetes auth для cnpg-system
+# =============================================================================
+apiVersion: secrets.hashicorp.com/v1beta1
+kind: VaultAuth
+metadata:
+  name: vault-auth-cnpg
+  namespace: cnpg-system
+spec:
+  vaultConnectionRef: vault-connection
+  method: kubernetes
+  mount: kubernetes
+  kubernetes:
+    role: cnpg-secrets
+    serviceAccount: default

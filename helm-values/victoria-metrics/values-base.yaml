@@ -1,0 +1,85 @@
+# =============================================================================
+# VictoriaMetrics K8s Stack - Base Values
+# =============================================================================
+
+# Victoria Metrics Single (для небольших кластеров)
+vmsingle:
+  enabled: true
+  spec:
+    retentionPeriod: "14d"
+    storage:
+      storageClassName: ""
+      resources:
+        requests:
+          storage: 20Gi
+    resources:
+      requests:
+        cpu: 100m
+        memory: 256Mi
+      limits:
+        cpu: 1000m
+        memory: 1Gi
+
+# VM Agent
+vmagent:
+  enabled: true
+  spec:
+    scrapeInterval: 30s
+    resources:
+      requests:
+        cpu: 100m
+        memory: 128Mi
+      limits:
+        cpu: 500m
+        memory: 512Mi
+
+# VM Alert
+vmalert:
+  enabled: true
+  spec:
+    resources:
+      requests:
+        cpu: 50m
+        memory: 64Mi
+      limits:
+        cpu: 200m
+        memory: 256Mi
+
+# Alert Manager
+alertmanager:
+  enabled: true
+  spec:
+    resources:
+      requests:
+        cpu: 50m
+        memory: 64Mi
+      limits:
+        cpu: 200m
+        memory: 256Mi
+
+# Grafana
+grafana:
+  enabled: true
+  adminPassword: ""  # Генерируется автоматически
+  persistence:
+    enabled: true
+    size: 5Gi
+  resources:
+    requests:
+      cpu: 100m
+      memory: 128Mi
+    limits:
+      cpu: 500m
+      memory: 512Mi
+
+# Kube State Metrics
+kube-state-metrics:
+  enabled: true
+
+# Node Exporter
+prometheus-node-exporter:
+  enabled: true
+
+# Prometheus Operator CRDs
+prometheus-operator-crds:
+  enabled: true

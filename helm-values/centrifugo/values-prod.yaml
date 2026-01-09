@@ -1,0 +1,36 @@
+# =============================================================================
+# Centrifugo - Production Values
+# =============================================================================
+
+replicaCount: 3
+
+config:
+  # Redis engine for HA
+  engine: redis
+  redis_address: "valkey-master.valkey.svc.cluster.local:6379"
+
+resources:
+  requests:
+    cpu: 200m
+    memory: 256Mi
+  limits:
+    cpu: 1000m
+    memory: 1Gi
+
+# Autoscaling
+autoscaling:
+  enabled: true
+  minReplicas: 3
+  maxReplicas: 10
+  targetCPUUtilizationPercentage: 70
+
+# Affinity
+affinity:
+  podAntiAffinity:
+    preferredDuringSchedulingIgnoredDuringExecution:
+      - weight: 100
+        podAffinityTerm:
+          labelSelector:
+            matchLabels:
+              app.kubernetes.io/name: centrifugo
+          topologyKey: kubernetes.io/hostname

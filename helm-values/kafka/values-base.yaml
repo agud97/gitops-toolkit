@@ -1,0 +1,35 @@
+# =============================================================================
+# Strimzi Kafka Operator - Base Values
+# =============================================================================
+
+# Operator replicas
+replicas: 1
+
+# Watch all namespaces
+watchAnyNamespace: true
+watchNamespaces: []
+
+# Feature gates
+featureGates: ""
+
+# Resources
+resources:
+  requests:
+    cpu: 200m
+    memory: 384Mi
+  limits:
+    cpu: 1000m
+    memory: 512Mi
+
+# Logging
+logLevel: INFO
+
+# Leader election
+leaderElection:
+  enable: true
+
+# Webhook
+createGlobalResources: true
+
+# Labels selector for watching specific Kafka resources
+# labelsExclusionPattern: ""

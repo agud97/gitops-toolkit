@@ -1,7 +1,7 @@
 # =============================================================================
 # Kafka NodePool - Combined (Controller + Broker)
 # =============================================================================
-# KRaft mode - без ZooKeeper
+# KRaft mode (без ZooKeeper) - Kafka 4.0
 # =============================================================================
 
 apiVersion: kafka.strimzi.io/v1beta2
@@ -40,7 +40,7 @@ spec:
 
 ---
 # =============================================================================
-# Kafka Cluster
+# Kafka Cluster (KRaft mode)
 # =============================================================================
 
 apiVersion: kafka.strimzi.io/v1beta2
@@ -52,10 +52,10 @@ metadata:
     strimzi.io/kraft: enabled
 spec:
   kafka:
-    version: 3.9.0  # Обновите при необходимости
+    version: 4.0.0
 
     # Metadata version для KRaft
-    metadataVersion: "3.9-IV0"
+    metadataVersion: "4.0-IV3"
 
     # Listeners
     listeners:
@@ -71,7 +71,7 @@ spec:
         type: internal
         tls: true
 
-      # External (опционально) - NodePort/LoadBalancer/Ingress
+      # External (опционально)
       # - name: external
       #   port: 9094
       #   type: nodeport
@@ -87,12 +87,12 @@ spec:
       min.insync.replicas: 2
 
       # Topics
-      auto.create.topics.enable: false  # Рекомендуется false для production
+      auto.create.topics.enable: false
       delete.topic.enable: true
 
       # Retention
       log.retention.hours: 168  # 7 дней
-      log.retention.bytes: -1   # Без лимита по размеру
+      log.retention.bytes: -1
 
       # Performance
       num.partitions: 3
@@ -105,11 +105,7 @@ spec:
       # Compression
       compression.type: producer
 
-    # Rack awareness (для multi-AZ)
-    # rack:
-    #   topologyKey: topology.kubernetes.io/zone
-
-  # Entity Operator - управление topics и users
+  # Entity Operator
   entityOperator:
     topicOperator:
       resources:
@@ -128,7 +124,7 @@ spec:
           memory: 512Mi
           cpu: 500m
 
-  # Kafka Exporter для метрик (опционально)
+  # Kafka Exporter для метрик
   kafkaExporter:
     topicRegex: ".*"
     groupRegex: ".*"
@@ -142,32 +138,80 @@ spec:
 
 ---
 # =============================================================================
-# Пример KafkaTopic
+# Примеры KafkaTopic
 # =============================================================================
 
+# Events topic
 apiVersion: kafka.strimzi.io/v1beta2
 kind: KafkaTopic
 metadata:
-  name: example-topic
+  name: events
+  labels:
+    strimzi.io/cluster: kafka-cluster
+spec:
+  partitions: 6
+  replicas: 3
+  config:
+    retention.ms: 604800000      # 7 дней
+    segment.bytes: 1073741824    # 1GB
+    cleanup.policy: delete
+    min.insync.replicas: 2
+
+---
+# Notifications topic
+apiVersion: kafka.strimzi.io/v1beta2
+kind: KafkaTopic
+metadata:
+  name: notifications
   labels:
     strimzi.io/cluster: kafka-cluster
 spec:
   partitions: 3
   replicas: 3
   config:
-    retention.ms: 604800000      # 7 дней
-    segment.bytes: 1073741824    # 1GB
+    retention.ms: 86400000       # 1 день
+    cleanup.policy: delete
+
+---
+# Commands topic (для CQRS)
+apiVersion: kafka.strimzi.io/v1beta2
+kind: KafkaTopic
+metadata:
+  name: commands
+  labels:
+    strimzi.io/cluster: kafka-cluster
+spec:
+  partitions: 6
+  replicas: 3
+  config:
+    retention.ms: 259200000      # 3 дня
+    cleanup.policy: delete
+
+---
+# Dead Letter Queue
+apiVersion: kafka.strimzi.io/v1beta2
+kind: KafkaTopic
+metadata:
+  name: dlq
+  labels:
+    strimzi.io/cluster: kafka-cluster
+spec:
+  partitions: 3
+  replicas: 3
+  config:
+    retention.ms: 2592000000     # 30 дней
     cleanup.policy: delete
 
 ---
 # =============================================================================
-# Пример KafkaUser
+# Примеры KafkaUser
 # =============================================================================
 
+# Producer user
 apiVersion: kafka.strimzi.io/v1beta2
 kind: KafkaUser
 metadata:
-  name: example-user
+  name: producer-app
   labels:
     strimzi.io/cluster: kafka-cluster
 spec:
@@ -176,29 +220,91 @@ spec:
   authorization:
     type: simple
     acls:
-      # Чтение из топиков
       - resource:
           type: topic
-          name: example-topic
-          patternType: literal
-        operations:
-          - Read
-          - Describe
-        host: "*"
-      # Запись в топики
-      - resource:
-          type: topic
-          name: example-topic
+          name: events
           patternType: literal
         operations:
           - Write
           - Describe
         host: "*"
-      # Consumer group
+      - resource:
+          type: topic
+          name: commands
+          patternType: literal
+        operations:
+          - Write
+          - Describe
+        host: "*"
+
+---
+# Consumer user
+apiVersion: kafka.strimzi.io/v1beta2
+kind: KafkaUser
+metadata:
+  name: consumer-app
+  labels:
+    strimzi.io/cluster: kafka-cluster
+spec:
+  authentication:
+    type: scram-sha-512
+  authorization:
+    type: simple
+    acls:
+      - resource:
+          type: topic
+          name: events
+          patternType: literal
+        operations:
+          - Read
+          - Describe
+        host: "*"
+      - resource:
+          type: topic
+          name: notifications
+          patternType: literal
+        operations:
+          - Read
+          - Describe
+        host: "*"
       - resource:
           type: group
-          name: example-group
+          name: consumer-
           patternType: prefix
         operations:
           - Read
+        host: "*"
+
+---
+# Admin user (full access)
+apiVersion: kafka.strimzi.io/v1beta2
+kind: KafkaUser
+metadata:
+  name: admin-user
+  labels:
+    strimzi.io/cluster: kafka-cluster
+spec:
+  authentication:
+    type: scram-sha-512
+  authorization:
+    type: simple
+    acls:
+      - resource:
+          type: topic
+          name: "*"
+          patternType: literal
+        operations:
+          - All
+        host: "*"
+      - resource:
+          type: group
+          name: "*"
+          patternType: literal
+        operations:
+          - All
+        host: "*"
+      - resource:
+          type: cluster
+        operations:
+          - All
         host: "*"

@@ -1,0 +1,49 @@
+# =============================================================================
+# Vault Secrets Operator - Base Values
+# =============================================================================
+# Common settings for VSO
+# =============================================================================
+
+# Default Vault connection (used if not overridden per-secret)
+defaultVaultConnection:
+  enabled: true
+  address: "http://vault.vault.svc.cluster.local:8200"
+  skipTLSVerify: false
+
+# Default auth method
+defaultAuthMethod:
+  enabled: true
+  namespace: ""  # Vault namespace (Enterprise only)
+  method: kubernetes
+  mount: kubernetes
+  kubernetes:
+    role: vso-role
+    serviceAccount: default
+    tokenAudiences: []
+
+# Controller settings
+controller:
+  replicas: 1
+
+  resources:
+    requests:
+      cpu: 10m
+      memory: 64Mi
+    limits:
+      cpu: 500m
+      memory: 256Mi
+
+  # Manager specific configs
+  manager:
+    # Max concurrent reconciles
+    maxConcurrentReconciles: 5
+
+    # Client cache settings
+    clientCache:
+      persistenceModel: "direct-encrypted"
+      # cacheSize: 10000
+
+# Telemetry
+telemetry:
+  serviceMonitor:
+    enabled: true

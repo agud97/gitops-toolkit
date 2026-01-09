@@ -1,0 +1,94 @@
+# =============================================================================
+# Kong Gateway - Base Values (DBless Mode)
+# =============================================================================
+# API Gateway без базы данных - конфигурация через declarative config
+# =============================================================================
+
+# Kong image
+image:
+  repository: kong
+  tag: "3.9"
+
+# DBless mode
+env:
+  database: "off"
+  declarative_config: /kong_dbless/kong.yml
+  # Logging
+  proxy_access_log: /dev/stdout
+  admin_access_log: /dev/stdout
+  proxy_error_log: /dev/stderr
+  admin_error_log: /dev/stderr
+  # Plugins
+  plugins: bundled
+  # Tuning
+  nginx_worker_processes: "auto"
+
+# Declarative config from ConfigMap
+dblessConfig:
+  configMap: kong-declarative-config
+
+# Proxy Service
+proxy:
+  enabled: true
+  type: ClusterIP
+  http:
+    enabled: true
+    containerPort: 8000
+    servicePort: 80
+  tls:
+    enabled: true
+    containerPort: 8443
+    servicePort: 443
+
+# Admin API (disabled by default for security)
+admin:
+  enabled: false
+  type: ClusterIP
+  http:
+    enabled: true
+    containerPort: 8001
+    servicePort: 8001
+
+# Status endpoint for health checks
+status:
+  enabled: true
+  http:
+    enabled: true
+    containerPort: 8100
+
+# Ingress Controller (disabled - using as pure gateway)
+ingressController:
+  enabled: false
+  installCRDs: false
+
+# Replicas
+replicaCount: 2
+
+# Resources
+resources:
+  requests:
+    cpu: 100m
+    memory: 256Mi
+  limits:
+    cpu: 1000m
+    memory: 1Gi
+
+# Pod Disruption Budget
+podDisruptionBudget:
+  enabled: true
+  maxUnavailable: 1
+
+# Probes
+readinessProbe:
+  httpGet:
+    path: /status/ready
+    port: status
+  initialDelaySeconds: 5
+  periodSeconds: 10
+
+livenessProbe:
+  httpGet:
+    path: /status
+    port: status
+  initialDelaySeconds: 5
+  periodSeconds: 10

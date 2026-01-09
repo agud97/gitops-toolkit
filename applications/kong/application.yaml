@@ -3,6 +3,9 @@
 # =============================================================================
 # API Gateway без базы данных - конфигурация через declarative config
 # Идеально для GitOps и immutable infrastructure
+#
+# Требует: ConfigMap kong-declarative-config в namespace kong
+# См. manifests/custom/kong-config/kong-config.yaml
 # =============================================================================
 
 apiVersion: argoproj.io/v1alpha1
@@ -17,122 +20,58 @@ metadata:
 spec:
   project: gitops-toolkit
 
+  sources:
+    - repoURL: https://github.com/agud97/gitops-toolkit.git
+      targetRevision: HEAD
+      ref: values
+
+    # Официальный Helm chart
+    - repoURL: https://charts.konghq.com
+      chart: kong
+      targetRevision: 2.52.0
+
+      helm:
+        releaseName: kong
+        valueFiles:
+          - $values/helm-values/kong/values-base.yaml
+          # Выберите окружение:
+          # - $values/helm-values/kong/values-dev.yaml
+          - $values/helm-values/kong/values-prod.yaml
+
+  destination:
+    server: https://kubernetes.default.svc
+    namespace: kong
+
+  syncPolicy:
+    automated:
+      selfHeal: true
+      prune: true
+    syncOptions:
+      - CreateNamespace=true
+
+---
+# =============================================================================
+# Kong Declarative Config
+# =============================================================================
+# Применяет ConfigMap с маршрутами для DBless режима
+# =============================================================================
+
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: kong-config
+  namespace: argocd
+  annotations:
+    argocd.argoproj.io/sync-wave: "2"  # До Kong Gateway
+  finalizers:
+    - resources-finalizer.argocd.argoproj.io
+spec:
+  project: gitops-toolkit
+
   source:
-    repoURL: https://charts.konghq.com
-    chart: kong
-    targetRevision: 2.52.0  # Обновите при необходимости
-
-    helm:
-      releaseName: kong
-
-      # Используйте valueFiles для внешней конфигурации:
-      # valueFiles:
-      #   - $values/helm-values/kong/values-prod.yaml
-
-      values: |
-        # Kong image
-        image:
-          repository: kong
-          tag: "3.9"
-
-        # Режим работы - DBless (без базы данных)
-        env:
-          database: "off"
-          declarative_config: /kong_dbless/kong.yml
-          # Proxy настройки
-          proxy_access_log: /dev/stdout
-          admin_access_log: /dev/stdout
-          proxy_error_log: /dev/stderr
-          admin_error_log: /dev/stderr
-          # Plugins
-          plugins: bundled
-
-        # Declarative конфигурация маршрутов
-        dblessConfig:
-          configMap: kong-declarative-config
-          # Или inline:
-          # config: |
-          #   _format_version: "3.0"
-          #   services:
-          #     - name: example-service
-          #       url: http://example-backend.default.svc.cluster.local:8080
-          #       routes:
-          #         - name: example-route
-          #           paths:
-          #             - /api/v1/example
-
-        # Proxy Service
-        proxy:
-          enabled: true
-          type: LoadBalancer
-          # type: ClusterIP
-          http:
-            enabled: true
-            containerPort: 8000
-            servicePort: 80
-          tls:
-            enabled: true
-            containerPort: 8443
-            servicePort: 443
-
-        # Admin API (только для отладки, обычно отключено в prod)
-        admin:
-          enabled: false
-          type: ClusterIP
-          http:
-            enabled: true
-            containerPort: 8001
-            servicePort: 8001
-
-        # Status endpoint для health checks
-        status:
-          enabled: true
-          http:
-            enabled: true
-            containerPort: 8100
-
-        # Ingress Controller (опционально)
-        ingressController:
-          enabled: false  # Включите если хотите использовать Kong как Ingress Controller
-          installCRDs: false
-
-        # Replicas
-        replicaCount: 2
-
-        # Resources
-        resources:
-          requests:
-            cpu: 100m
-            memory: 256Mi
-          limits:
-            cpu: 1000m
-            memory: 1Gi
-
-        # Autoscaling
-        autoscaling:
-          enabled: false
-          minReplicas: 2
-          maxReplicas: 5
-          targetCPUUtilizationPercentage: 80
-
-        # Pod Disruption Budget
-        podDisruptionBudget:
-          enabled: true
-          maxUnavailable: 1
-
-        # Affinity
-        affinity:
-          podAntiAffinity:
-            preferredDuringSchedulingIgnoredDuringExecution:
-              - weight: 100
-                podAffinityTerm:
-                  labelSelector:
-                    matchExpressions:
-                      - key: app.kubernetes.io/name
-                        operator: In
-                        values:
-                          - kong
-                  topologyKey: kubernetes.io/hostname
+    repoURL: https://github.com/agud97/gitops-toolkit.git
+    targetRevision: HEAD
+    path: manifests/custom/kong-config
 
   destination:
     server: https://kubernetes.default.svc

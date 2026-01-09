@@ -1,0 +1,57 @@
+# =============================================================================
+# Centrifugo - Base Values
+# =============================================================================
+# Real-time messaging server (WebSocket)
+# =============================================================================
+
+replicaCount: 1
+
+image:
+  repository: centrifugo/centrifugo
+  tag: "v6"
+
+# Config
+config:
+  # Engine (memory, redis)
+  engine: memory
+
+  # API
+  api_insecure: false
+  admin: true
+  admin_insecure: false
+
+  # Allowed origins (CORS)
+  allowed_origins: []
+
+  # Namespaces
+  namespaces: []
+
+# Secrets - ИЗМЕНИТЕ
+secrets:
+  tokenHmacSecretKey: ""  # Генерируется или из Vault
+  adminPassword: ""
+  adminSecret: ""
+  apiKey: ""
+
+# Resources
+resources:
+  requests:
+    cpu: 100m
+    memory: 128Mi
+  limits:
+    cpu: 500m
+    memory: 512Mi
+
+# Service
+service:
+  type: ClusterIP
+  port: 8000
+
+# Ingress
+ingress:
+  enabled: false
+  # className: nginx
+  # hosts:
+  #   - host: centrifugo.example.com
+  #     paths:
+  #       - path: /

@@ -1,0 +1,24 @@
+# =============================================================================
+# Keycloak - Production Values
+# =============================================================================
+
+keycloak:
+  instances: 2  # HA режим
+
+  # Production resources
+  resources:
+    requests:
+      cpu: 500m
+      memory: 1Gi
+    limits:
+      cpu: 2000m
+      memory: 2Gi
+
+  # Additional production options
+  additionalOptions:
+    metrics-enabled: "true"
+    health-enabled: "true"
+    log-level: "INFO"
+    cache: "ispn"
+    # Transaction XA
+    transaction-xa-enabled: "true"

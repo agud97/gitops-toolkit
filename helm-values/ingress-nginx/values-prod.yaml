@@ -1,0 +1,46 @@
+# =============================================================================
+# Ingress NGINX - Production Values
+# =============================================================================
+
+controller:
+  replicaCount: 3
+
+  resources:
+    requests:
+      cpu: 200m
+      memory: 256Mi
+    limits:
+      cpu: 1000m
+      memory: 1Gi
+
+  # Autoscaling
+  autoscaling:
+    enabled: true
+    minReplicas: 3
+    maxReplicas: 10
+    targetCPUUtilizationPercentage: 70
+    targetMemoryUtilizationPercentage: 80
+
+  # Pod Disruption Budget
+  minAvailable: 2
+
+  # Affinity
+  affinity:
+    podAntiAffinity:
+      preferredDuringSchedulingIgnoredDuringExecution:
+        - weight: 100
+          podAffinityTerm:
+            labelSelector:
+              matchLabels:
+                app.kubernetes.io/name: ingress-nginx
+            topologyKey: kubernetes.io/hostname
+
+  # Config optimizations
+  config:
+    worker-processes: "auto"
+    max-worker-connections: "65536"
+    proxy-connect-timeout: "60"
+    proxy-read-timeout: "60"
+    proxy-send-timeout: "60"
+    keep-alive: "75"
+    keep-alive-requests: "1000"
