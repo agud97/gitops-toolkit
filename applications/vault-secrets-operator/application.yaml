@@ -90,7 +90,7 @@ spec:
 
   source:
     # ⚠️ ИЗМЕНИТЕ НА ВАШ РЕПОЗИТОРИЙ
-    repoURL: https://github.com/YOUR_USERNAME/gitops-toolkit.git
+    repoURL: https://github.com/agud97/gitops-toolkit.git
     targetRevision: HEAD
     path: manifests/custom/vso-resources
 

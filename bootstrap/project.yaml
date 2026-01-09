@@ -10,7 +10,7 @@ spec:
 
   # Источники
   sourceRepos:
-    - '*'  # Замените на ваш репозиторий: https://github.com/YOUR_USERNAME/gitops-toolkit.git
+    - '*'  # Замените на ваш репозиторий: https://github.com/agud97/gitops-toolkit.git
 
   # Разрешённые destinations
   destinations:
