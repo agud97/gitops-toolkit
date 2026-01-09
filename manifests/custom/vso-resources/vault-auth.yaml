@@ -1,0 +1,76 @@
+# =============================================================================
+# VaultConnection - подключение к Vault
+# =============================================================================
+apiVersion: secrets.hashicorp.com/v1beta1
+kind: VaultConnection
+metadata:
+  name: vault-connection
+  namespace: vault-secrets-operator
+spec:
+  # Адрес Vault сервера
+  address: http://vault.vault.svc.cluster.local:8200
+
+  # TLS настройки
+  skipTLSVerify: false
+  # caCertSecretRef: vault-ca-cert  # Если используется TLS
+
+  # Timeout и retry
+  # timeout: 30s
+
+---
+# =============================================================================
+# VaultAuth - аутентификация в Vault через Kubernetes
+# =============================================================================
+apiVersion: secrets.hashicorp.com/v1beta1
+kind: VaultAuth
+metadata:
+  name: vault-auth
+  namespace: vault-secrets-operator
+spec:
+  # Ссылка на VaultConnection
+  vaultConnectionRef: vault-connection
+
+  # Метод аутентификации
+  method: kubernetes
+  mount: kubernetes
+
+  # Настройки Kubernetes auth
+  kubernetes:
+    role: vso-role  # Роль в Vault
+    serviceAccount: default
+    # audiences:
+    #   - vault
+
+  # Vault namespace (для Enterprise)
+  # namespace: admin
+
+---
+# =============================================================================
+# Пример VaultStaticSecret для синхронизации секрета
+# =============================================================================
+# Раскомментируйте и настройте под ваши нужды
+# =============================================================================
+# apiVersion: secrets.hashicorp.com/v1beta1
+# kind: VaultStaticSecret
+# metadata:
+#   name: example-secret
+#   namespace: your-namespace
+# spec:
+#   type: kv-v2
+#   mount: secret
+#   path: your/secret/path
+#
+#   vaultAuthRef: vault-auth
+#
+#   destination:
+#     name: k8s-secret-name
+#     create: true
+#     overwrite: true
+#     type: Opaque
+#     # transformation:
+#     #   excludeRaw: true
+#     #   templates:
+#     #     username:
+#     #       text: "{{ .Secrets.username }}"
+#
+#   refreshAfter: 30s

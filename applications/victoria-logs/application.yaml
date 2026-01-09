@@ -1,0 +1,105 @@
+# =============================================================================
+# Victoria Logs
+# =============================================================================
+# Высокопроизводительный log storage
+# =============================================================================
+
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: victoria-logs
+  namespace: argocd
+  annotations:
+    argocd.argoproj.io/sync-wave: "2"
+  finalizers:
+    - resources-finalizer.argocd.argoproj.io
+spec:
+  project: gitops-toolkit
+
+  source:
+    repoURL: https://victoriametrics.github.io/helm-charts/
+    chart: victoria-logs-single
+    targetRevision: 0.8.0  # Обновите при необходимости
+
+    helm:
+      releaseName: victoria-logs
+      values: |
+        # Server configuration
+        server:
+          enabled: true
+
+          image:
+            repository: victoriametrics/victoria-logs
+            tag: "v1.0.0-victorialogs"
+
+          # Retention
+          retentionPeriod: "30d"
+
+          # Storage
+          persistentVolume:
+            enabled: true
+            size: 50Gi
+            # storageClass: fast-ssd
+
+          # Resources
+          resources:
+            requests:
+              cpu: 100m
+              memory: 256Mi
+            limits:
+              cpu: 500m
+              memory: 1Gi
+
+          # Service
+          service:
+            type: ClusterIP
+            port: 9428
+
+        # Fluent Bit для сбора логов
+        fluent-bit:
+          enabled: true
+          config:
+            outputs: |
+              [OUTPUT]
+                  Name http
+                  Match *
+                  Host victoria-logs-victoria-logs-single-server
+                  Port 9428
+                  URI /insert/jsonline?_stream_fields=stream,kubernetes_pod_name,kubernetes_namespace_name&_msg_field=log&_time_field=date
+                  Format json_lines
+                  Json_date_format iso8601
+                  Compress gzip
+
+            inputs: |
+              [INPUT]
+                  Name tail
+                  Path /var/log/containers/*.log
+                  Parser cri
+                  Tag kube.*
+                  Mem_Buf_Limit 5MB
+                  Skip_Long_Lines On
+                  Refresh_Interval 10
+
+            filters: |
+              [FILTER]
+                  Name kubernetes
+                  Match kube.*
+                  Kube_URL https://kubernetes.default.svc:443
+                  Kube_CA_File /var/run/secrets/kubernetes.io/serviceaccount/ca.crt
+                  Kube_Token_File /var/run/secrets/kubernetes.io/serviceaccount/token
+                  Kube_Tag_Prefix kube.var.log.containers.
+                  Merge_Log On
+                  Keep_Log Off
+                  K8S-Logging.Parser On
+                  K8S-Logging.Exclude On
+
+  destination:
+    server: https://kubernetes.default.svc
+    namespace: victoria-logs
+
+  syncPolicy:
+    automated:
+      selfHeal: true
+      prune: true
+    syncOptions:
+      - CreateNamespace=true

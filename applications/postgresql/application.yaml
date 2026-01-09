@@ -1,0 +1,96 @@
+# =============================================================================
+# CloudNativePG Operator
+# =============================================================================
+# Kubernetes-native PostgreSQL оператор
+# =============================================================================
+
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: cnpg-operator
+  namespace: argocd
+  annotations:
+    argocd.argoproj.io/sync-wave: "1"
+  finalizers:
+    - resources-finalizer.argocd.argoproj.io
+spec:
+  project: gitops-toolkit
+
+  source:
+    repoURL: https://cloudnative-pg.github.io/charts
+    chart: cloudnative-pg
+    targetRevision: 0.23.0  # Обновите при необходимости
+
+    helm:
+      releaseName: cnpg
+      values: |
+        # Replicas
+        replicaCount: 1
+
+        # Resources
+        resources:
+          limits:
+            cpu: 500m
+            memory: 256Mi
+          requests:
+            cpu: 100m
+            memory: 128Mi
+
+        # Monitoring
+        monitoring:
+          podMonitorEnabled: true
+          grafanaDashboard:
+            create: true
+
+        # Config
+        config:
+          # Количество одновременных бэкапов
+          INHERITED_ANNOTATIONS: "my.annotation.io/*"
+
+  destination:
+    server: https://kubernetes.default.svc
+    namespace: cnpg-system
+
+  syncPolicy:
+    automated:
+      selfHeal: true
+      prune: true
+    syncOptions:
+      - CreateNamespace=true
+      - ServerSideApply=true
+
+---
+# =============================================================================
+# PostgreSQL Cluster
+# =============================================================================
+# Пример PostgreSQL кластера
+# =============================================================================
+
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: postgresql-cluster
+  namespace: argocd
+  annotations:
+    argocd.argoproj.io/sync-wave: "2"  # После оператора
+  finalizers:
+    - resources-finalizer.argocd.argoproj.io
+spec:
+  project: gitops-toolkit
+
+  source:
+    # ⚠️ ИЗМЕНИТЕ НА ВАШ РЕПОЗИТОРИЙ
+    repoURL: https://github.com/YOUR_USERNAME/gitops-toolkit.git
+    targetRevision: HEAD
+    path: manifests/custom/postgresql-cluster
+
+  destination:
+    server: https://kubernetes.default.svc
+    namespace: cnpg-system
+
+  syncPolicy:
+    automated:
+      selfHeal: true
+      prune: true
+    syncOptions:
+      - CreateNamespace=true

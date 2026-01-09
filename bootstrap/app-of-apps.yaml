@@ -1,0 +1,68 @@
+# =============================================================================
+# App-of-Apps Root Application
+# =============================================================================
+# Этот файл управляет всеми остальными Applications.
+# Примените его после настройки репозитория в ArgoCD.
+#
+# Использование:
+#   1. Отредактируйте repoURL на ваш форк/репозиторий
+#   2. Включите/выключите нужные приложения в applications/ директории
+#   3. kubectl apply -f bootstrap/app-of-apps.yaml
+# =============================================================================
+
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: gitops-toolkit-apps
+  namespace: argocd
+  finalizers:
+    - resources-finalizer.argocd.argoproj.io
+  annotations:
+    argocd.argoproj.io/sync-wave: "-1"  # Синхронизируется первым
+spec:
+  project: gitops-toolkit  # Используем созданный AppProject
+
+  source:
+    # ⚠️ ИЗМЕНИТЕ НА ВАШ РЕПОЗИТОРИЙ
+    repoURL: https://github.com/YOUR_USERNAME/gitops-toolkit.git
+    targetRevision: HEAD  # или конкретный tag/branch
+    path: applications    # Директория с Application манифестами
+
+    # Используем directory recurse для автообнаружения всех yaml файлов
+    directory:
+      recurse: true
+      include: '*.yaml'
+      exclude: '{kustomization.yaml,*-disabled.yaml}'
+
+  destination:
+    server: https://kubernetes.default.svc
+    namespace: argocd
+
+  syncPolicy:
+    automated:
+      selfHeal: true    # Автоматически исправляет drift
+      prune: true       # Удаляет ресурсы, которых нет в Git
+      allowEmpty: false # Не синхронизировать пустой source
+
+    syncOptions:
+      - CreateNamespace=true
+      - PrunePropagationPolicy=foreground
+      - PruneLast=true
+
+    retry:
+      limit: 5
+      backoff:
+        duration: 5s
+        factor: 2
+        maxDuration: 3m
+
+  # Игнорировать различия в некоторых полях (опционально)
+  ignoreDifferences:
+    - group: apps
+      kind: Deployment
+      jsonPointers:
+        - /spec/replicas
+    - group: ""
+      kind: Service
+      jsonPointers:
+        - /spec/clusterIP

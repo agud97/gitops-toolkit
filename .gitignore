@@ -1,0 +1,78 @@
+# =============================================================================
+# GitOps Toolkit - .gitignore
+# =============================================================================
+
+# Секреты и credentials
+*.key
+*.pem
+*.crt
+*-secret.yaml
+*-secrets.yaml
+secrets/
+credentials/
+vault-keys.json
+vault-init.json
+kubeconfig
+kubeconfig-*
+.kube/
+
+# Terraform
+.terraform/
+*.tfstate
+*.tfstate.*
+*.tfvars
+!example.tfvars
+
+# IDE
+.idea/
+.vscode/
+*.swp
+*.swo
+*~
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Helm
+*.tgz
+charts/*/charts/
+
+# Временные файлы
+*.tmp
+*.temp
+*.log
+*.bak
+
+# Node (если есть скрипты)
+node_modules/
+npm-debug.log
+
+# Python (если есть скрипты)
+__pycache__/
+*.py[cod]
+.venv/
+venv/
+
+# Build artifacts
+dist/
+build/
+*.exe
+*.dll
+*.so
+*.dylib
+
+# Test coverage
+coverage/
+*.cover
+
+# Local development
+.env
+.env.local
+.env.*.local
+
+# ArgoCD local testing
+argocd-local/
+
+# Disabled applications (опционально, можно оставить)
+# *-disabled.yaml

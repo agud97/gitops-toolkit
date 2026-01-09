@@ -1,0 +1,61 @@
+# =============================================================================
+# Kustomize Overlay - Development
+# =============================================================================
+# Пример использования Kustomize для кастомизации окружений
+# =============================================================================
+
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+
+# Namespace prefix/suffix
+nameSuffix: -dev
+
+# Common labels
+commonLabels:
+  environment: development
+
+# Common annotations
+commonAnnotations:
+  managed-by: gitops-toolkit
+
+# Resources to include
+# resources:
+#   - ../../manifests/custom/postgresql-cluster/cluster.yaml
+
+# Patches
+patches:
+  # Уменьшение реплик для dev
+  - patch: |-
+      - op: replace
+        path: /spec/instances
+        value: 1
+    target:
+      kind: Cluster
+      name: pg-cluster
+
+  # Уменьшение storage для dev
+  - patch: |-
+      - op: replace
+        path: /spec/storage/size
+        value: 5Gi
+    target:
+      kind: Cluster
+      name: pg-cluster
+
+# Config Maps
+# configMapGenerator:
+#   - name: app-config
+#     literals:
+#       - LOG_LEVEL=debug
+#       - ENVIRONMENT=development
+
+# Secrets (не рекомендуется хранить в Git)
+# secretGenerator:
+#   - name: app-secrets
+#     literals:
+#       - API_KEY=dev-key
+
+# Images
+# images:
+#   - name: myapp
+#     newTag: dev-latest

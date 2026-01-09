@@ -1,0 +1,141 @@
+# =============================================================================
+# Grafana (standalone)
+# =============================================================================
+# Если нужна отдельная Grafana (не из VictoriaMetrics Stack)
+# =============================================================================
+
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: grafana
+  namespace: argocd
+  annotations:
+    argocd.argoproj.io/sync-wave: "3"
+  finalizers:
+    - resources-finalizer.argocd.argoproj.io
+spec:
+  project: gitops-toolkit
+
+  source:
+    repoURL: https://grafana.github.io/helm-charts
+    chart: grafana
+    targetRevision: 8.8.0  # Обновите при необходимости
+
+    helm:
+      releaseName: grafana
+      values: |
+        # Replicas
+        replicas: 1
+
+        # Admin credentials
+        adminUser: admin
+        # adminPassword: ""  # Будет сгенерирован автоматически
+        # existingSecret: grafana-admin-credentials
+
+        # Persistence
+        persistence:
+          enabled: true
+          size: 10Gi
+          # storageClassName: fast-ssd
+
+        # Resources
+        resources:
+          requests:
+            cpu: 100m
+            memory: 128Mi
+          limits:
+            cpu: 500m
+            memory: 512Mi
+
+        # Ingress
+        ingress:
+          enabled: false
+          # ingressClassName: nginx
+          # annotations:
+          #   cert-manager.io/cluster-issuer: letsencrypt-prod
+          # hosts:
+          #   - grafana.your-domain.com
+          # tls:
+          #   - secretName: grafana-tls
+          #     hosts:
+          #       - grafana.your-domain.com
+
+        # Datasources
+        datasources:
+          datasources.yaml:
+            apiVersion: 1
+            datasources:
+              # VictoriaMetrics
+              - name: VictoriaMetrics
+                type: prometheus
+                url: http://vmsingle-victoria-metrics.monitoring.svc.cluster.local:8429
+                access: proxy
+                isDefault: true
+                jsonData:
+                  timeInterval: "30s"
+
+              # Victoria Logs (если установлен)
+              # - name: VictoriaLogs
+              #   type: loki
+              #   url: http://victoria-logs.victoria-logs.svc.cluster.local:9428
+              #   access: proxy
+
+        # Dashboard providers
+        dashboardProviders:
+          dashboardproviders.yaml:
+            apiVersion: 1
+            providers:
+              - name: default
+                orgId: 1
+                folder: ''
+                type: file
+                disableDeletion: false
+                editable: true
+                options:
+                  path: /var/lib/grafana/dashboards/default
+
+        # Dashboard sidecars
+        sidecar:
+          dashboards:
+            enabled: true
+            label: grafana_dashboard
+            labelValue: "1"
+            folder: /var/lib/grafana/dashboards/default
+            searchNamespace: ALL
+          datasources:
+            enabled: true
+            label: grafana_datasource
+            labelValue: "1"
+
+        # Plugins
+        plugins:
+          - grafana-piechart-panel
+          - grafana-clock-panel
+
+        # Grafana.ini
+        grafana.ini:
+          server:
+            root_url: "%(protocol)s://%(domain)s:%(http_port)s/grafana/"
+            serve_from_sub_path: true
+          analytics:
+            check_for_updates: false
+          security:
+            admin_user: admin
+            disable_gravatar: true
+          users:
+            allow_sign_up: false
+
+        # Service Monitor
+        serviceMonitor:
+          enabled: true
+
+  destination:
+    server: https://kubernetes.default.svc
+    namespace: monitoring
+
+  syncPolicy:
+    automated:
+      selfHeal: true
+      prune: true
+    syncOptions:
+      - CreateNamespace=true

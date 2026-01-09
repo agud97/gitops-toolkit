@@ -1,0 +1,107 @@
+# =============================================================================
+# HashiCorp Vault
+# =============================================================================
+# Централизованное управление секретами
+#
+# После установки требуется ручная инициализация:
+#   kubectl exec -n vault vault-0 -- vault operator init -key-shares=1 -key-threshold=1
+# =============================================================================
+
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: vault
+  namespace: argocd
+  annotations:
+    argocd.argoproj.io/sync-wave: "1"  # После базовой инфраструктуры
+  finalizers:
+    - resources-finalizer.argocd.argoproj.io
+spec:
+  project: gitops-toolkit
+
+  source:
+    # Официальный Helm chart
+    repoURL: https://helm.releases.hashicorp.com
+    chart: vault
+    targetRevision: 0.30.0  # Обновите при необходимости
+
+    helm:
+      releaseName: vault
+
+      # Путь к values файлу в ВАШЕМ репозитории
+      # valueFiles:
+      #   - $values/helm-values/vault/values-prod.yaml
+
+      # Или inline values:
+      values: |
+        global:
+          enabled: true
+          tlsDisable: true
+
+        server:
+          enabled: true
+          image:
+            repository: hashicorp/vault
+            tag: "1.20.1"
+
+          # Standalone режим (для dev/small prod)
+          standalone:
+            enabled: true
+            config: |
+              ui = true
+              listener "tcp" {
+                tls_disable = 1
+                address = "[::]:8200"
+                cluster_address = "[::]:8201"
+              }
+              storage "file" {
+                path = "/vault/data"
+              }
+
+          # HA режим (для production) - раскомментируйте при необходимости
+          # ha:
+          #   enabled: true
+          #   replicas: 3
+          #   raft:
+          #     enabled: true
+
+          dataStorage:
+            enabled: true
+            size: 10Gi
+            # storageClass: fast-ssd  # Укажите ваш StorageClass
+
+          resources:
+            requests:
+              memory: 256Mi
+              cpu: 250m
+            limits:
+              memory: 512Mi
+              cpu: 500m
+
+          # Ingress (опционально)
+          ingress:
+            enabled: false
+            # ingressClassName: nginx
+            # hosts:
+            #   - host: vault.your-domain.com
+
+        ui:
+          enabled: true
+
+        injector:
+          enabled: true  # Vault Agent Injector
+
+  destination:
+    server: https://kubernetes.default.svc
+    namespace: vault
+
+  syncPolicy:
+    automated:
+      selfHeal: true
+      prune: true
+    syncOptions:
+      - CreateNamespace=true
+      - ServerSideApply=true
+
+  # Healthcheck
+  # Vault требует ручной инициализации, поэтому начальное состояние будет Degraded

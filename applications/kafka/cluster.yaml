@@ -1,0 +1,38 @@
+# =============================================================================
+# Apache Kafka - Cluster (KRaft mode)
+# =============================================================================
+# Создаёт Kafka кластер через Strimzi
+# Требует: kafka-operator должен быть установлен
+# =============================================================================
+
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: kafka-cluster
+  namespace: argocd
+  annotations:
+    argocd.argoproj.io/sync-wave: "2"  # После оператора
+  finalizers:
+    - resources-finalizer.argocd.argoproj.io
+spec:
+  project: gitops-toolkit
+
+  source:
+    # ⚠️ ИЗМЕНИТЕ НА ВАШ РЕПОЗИТОРИЙ
+    repoURL: https://github.com/YOUR_USERNAME/gitops-toolkit.git
+    targetRevision: HEAD
+    path: manifests/custom/kafka-cluster
+
+  destination:
+    server: https://kubernetes.default.svc
+    namespace: kafka
+
+  syncPolicy:
+    automated:
+      selfHeal: true
+      prune: true
+    syncOptions:
+      - CreateNamespace=true
+
+  # Health assessment
+  # Kafka может занять время для запуска

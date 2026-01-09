@@ -1,0 +1,69 @@
+# =============================================================================
+# Apache Kafka - Strimzi Operator
+# =============================================================================
+# Устанавливает Strimzi Kafka Operator
+# После установки оператора примените kafka-cluster.yaml
+# =============================================================================
+
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: kafka-operator
+  namespace: argocd
+  annotations:
+    argocd.argoproj.io/sync-wave: "1"
+  finalizers:
+    - resources-finalizer.argocd.argoproj.io
+spec:
+  project: gitops-toolkit
+
+  source:
+    # Strimzi Helm chart
+    repoURL: https://strimzi.io/charts/
+    chart: strimzi-kafka-operator
+    targetRevision: 0.45.0  # Обновите при необходимости
+
+    helm:
+      releaseName: strimzi-kafka-operator
+      values: |
+        # Количество реплик оператора
+        replicas: 1
+
+        # Watched namespaces (пустой = все namespaces)
+        watchNamespaces: []
+        # watchNamespaces:
+        #   - kafka
+
+        # Watched любые namespaces
+        watchAnyNamespace: true
+
+        # Feature gates
+        featureGates: ""
+
+        # Ресурсы оператора
+        resources:
+          limits:
+            cpu: 1000m
+            memory: 512Mi
+          requests:
+            cpu: 200m
+            memory: 384Mi
+
+        # Логирование
+        logLevel: INFO
+
+        # Leader election
+        leaderElection:
+          enable: true
+
+  destination:
+    server: https://kubernetes.default.svc
+    namespace: kafka
+
+  syncPolicy:
+    automated:
+      selfHeal: true
+      prune: true
+    syncOptions:
+      - CreateNamespace=true
+      - ServerSideApply=true  # Для CRDs

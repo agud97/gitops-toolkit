@@ -1,0 +1,67 @@
+# =============================================================================
+# Keycloak Operator
+# =============================================================================
+# IAM/SSO решение
+# =============================================================================
+
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: keycloak-operator
+  namespace: argocd
+  annotations:
+    argocd.argoproj.io/sync-wave: "2"
+  finalizers:
+    - resources-finalizer.argocd.argoproj.io
+spec:
+  project: gitops-toolkit
+
+  source:
+    # Официальные CRDs и оператор
+    repoURL: https://github.com/keycloak/keycloak-k8s-resources.git
+    targetRevision: 26.0.0  # Обновите при необходимости
+    path: kubernetes
+
+  destination:
+    server: https://kubernetes.default.svc
+    namespace: keycloak
+
+  syncPolicy:
+    automated:
+      selfHeal: true
+      prune: true
+    syncOptions:
+      - CreateNamespace=true
+      - ServerSideApply=true
+
+---
+# =============================================================================
+# Keycloak Instance
+# =============================================================================
+
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: keycloak-instance
+  namespace: argocd
+  annotations:
+    argocd.argoproj.io/sync-wave: "3"  # После оператора
+  finalizers:
+    - resources-finalizer.argocd.argoproj.io
+spec:
+  project: gitops-toolkit
+
+  source:
+    # ⚠️ ИЗМЕНИТЕ НА ВАШ РЕПОЗИТОРИЙ
+    repoURL: https://github.com/YOUR_USERNAME/gitops-toolkit.git
+    targetRevision: HEAD
+    path: manifests/custom/keycloak
+
+  destination:
+    server: https://kubernetes.default.svc
+    namespace: keycloak
+
+  syncPolicy:
+    automated:
+      selfHeal: true
+      prune: true

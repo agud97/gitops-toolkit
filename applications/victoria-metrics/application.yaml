@@ -1,0 +1,193 @@
+# =============================================================================
+# VictoriaMetrics Stack
+# =============================================================================
+# Полный мониторинг стек:
+# - VictoriaMetrics (метрики)
+# - VMAgent (сбор метрик)
+# - VMAlert (алертинг)
+# - Grafana (визуализация)
+# - kube-state-metrics
+# - node-exporter
+# =============================================================================
+
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: victoria-metrics-stack
+  namespace: argocd
+  annotations:
+    argocd.argoproj.io/sync-wave: "2"
+  finalizers:
+    - resources-finalizer.argocd.argoproj.io
+spec:
+  project: gitops-toolkit
+
+  source:
+    repoURL: https://victoriametrics.github.io/helm-charts/
+    chart: victoria-metrics-k8s-stack
+    targetRevision: 0.35.0  # Обновите при необходимости
+
+    helm:
+      releaseName: victoria-metrics
+      values: |
+        # Victoria Metrics Single (для small/medium нагрузки)
+        vmsingle:
+          enabled: true
+          spec:
+            retentionPeriod: "30d"
+            storage:
+              storageClassName: ""  # Укажите ваш StorageClass
+              resources:
+                requests:
+                  storage: 50Gi
+            resources:
+              requests:
+                cpu: 100m
+                memory: 256Mi
+              limits:
+                cpu: 1000m
+                memory: 1Gi
+
+        # Victoria Metrics Cluster (для high availability)
+        # Раскомментируйте для production
+        # vmcluster:
+        #   enabled: true
+        #   spec:
+        #     retentionPeriod: "30d"
+        #     vmstorage:
+        #       replicaCount: 2
+        #       storage:
+        #         volumeClaimTemplate:
+        #           spec:
+        #             resources:
+        #               requests:
+        #                 storage: 100Gi
+        #     vmselect:
+        #       replicaCount: 2
+        #     vminsert:
+        #       replicaCount: 2
+
+        # VMAgent - сбор метрик
+        vmagent:
+          enabled: true
+          spec:
+            scrapeInterval: 30s
+            resources:
+              requests:
+                cpu: 50m
+                memory: 128Mi
+              limits:
+                cpu: 500m
+                memory: 512Mi
+            # Extra scrape configs
+            # additionalScrapeConfigs:
+            #   key: additional-scrape-configs.yaml
+            #   name: additional-scrape-configs
+
+        # VMAlert - алертинг
+        vmalert:
+          enabled: true
+          spec:
+            resources:
+              requests:
+                cpu: 50m
+                memory: 64Mi
+              limits:
+                cpu: 200m
+                memory: 256Mi
+          # Alertmanager config
+          # alertmanager:
+          #   url: http://alertmanager.monitoring.svc.cluster.local:9093
+
+        # Grafana
+        grafana:
+          enabled: true
+          persistence:
+            enabled: true
+            size: 10Gi
+          adminPassword: admin  # ⚠️ Измените в production!
+          # ingress:
+          #   enabled: true
+          #   ingressClassName: nginx
+          #   hosts:
+          #     - grafana.your-domain.com
+          sidecar:
+            dashboards:
+              enabled: true
+              label: grafana_dashboard
+            datasources:
+              enabled: true
+              label: grafana_datasource
+
+        # Prometheus Operator CRDs (для совместимости)
+        prometheus-operator-crds:
+          enabled: true
+
+        # kube-state-metrics
+        kube-state-metrics:
+          enabled: true
+
+        # Prometheus node-exporter
+        prometheus-node-exporter:
+          enabled: true
+
+        # Alertmanager
+        alertmanager:
+          enabled: true
+          spec:
+            storage:
+              volumeClaimTemplate:
+                spec:
+                  resources:
+                    requests:
+                      storage: 5Gi
+
+        # Default rules
+        defaultRules:
+          create: true
+          rules:
+            alertmanager: true
+            etcd: true
+            configReloaders: true
+            general: true
+            k8s: true
+            kubeApiserver: true
+            kubeApiserverAvailability: true
+            kubeApiserverSlos: true
+            kubeControllerManager: true
+            kubelet: true
+            kubeProxy: true
+            kubePrometheusGeneral: true
+            kubePrometheusNodeRecording: true
+            kubernetesApps: true
+            kubernetesResources: true
+            kubernetesStorage: true
+            kubernetesSystem: true
+            kubeScheduler: true
+            kubeStateMetrics: true
+            network: true
+            node: true
+            vmagent: true
+            vmcluster: true
+            vmsingle: true
+
+        # ServiceMonitor для собственных приложений
+        # additionalServiceMonitors: []
+
+  destination:
+    server: https://kubernetes.default.svc
+    namespace: monitoring
+
+  syncPolicy:
+    automated:
+      selfHeal: true
+      prune: true
+    syncOptions:
+      - CreateNamespace=true
+      - ServerSideApply=true
+
+  ignoreDifferences:
+    - group: ""
+      kind: Secret
+      jsonPointers:
+        - /data

@@ -1,0 +1,156 @@
+# =============================================================================
+# CloudNativePG PostgreSQL Cluster
+# =============================================================================
+# High-availability PostgreSQL кластер с автоматическим failover
+# =============================================================================
+
+apiVersion: postgresql.cnpg.io/v1
+kind: Cluster
+metadata:
+  name: pg-cluster
+  namespace: cnpg-system
+spec:
+  # Количество инстансов (1 primary + N-1 replicas)
+  instances: 2  # Увеличьте до 3 для production
+
+  # PostgreSQL версия
+  imageName: ghcr.io/cloudnative-pg/postgresql:17.2
+
+  # Bootstrap - инициализация кластера
+  bootstrap:
+    initdb:
+      database: app
+      owner: app
+      # secret:
+      #   name: app-user-secret  # Секрет с паролем
+
+  # Storage
+  storage:
+    size: 20Gi
+    # storageClass: fast-ssd  # Укажите ваш StorageClass
+
+  # Resources
+  resources:
+    requests:
+      memory: 512Mi
+      cpu: 250m
+    limits:
+      memory: 2Gi
+      cpu: 1000m
+
+  # PostgreSQL конфигурация
+  postgresql:
+    parameters:
+      # Memory
+      shared_buffers: "256MB"
+      effective_cache_size: "768MB"
+      work_mem: "16MB"
+      maintenance_work_mem: "128MB"
+
+      # Connections
+      max_connections: "100"
+
+      # WAL
+      wal_buffers: "16MB"
+      min_wal_size: "1GB"
+      max_wal_size: "4GB"
+
+      # Logging
+      log_statement: "ddl"
+      log_min_duration_statement: "1000"
+
+      # Locale
+      timezone: "UTC"
+
+    # Extensions
+    # pg_hba:
+    #   - host all all 10.0.0.0/8 md5
+
+  # Monitoring
+  monitoring:
+    enablePodMonitor: true
+    # customQueriesConfigMap:
+    #   - name: custom-queries
+    #     key: queries.yaml
+
+  # Backup (опционально)
+  # backup:
+  #   barmanObjectStore:
+  #     destinationPath: s3://your-bucket/postgresql/
+  #     endpointURL: https://s3.amazonaws.com
+  #     s3Credentials:
+  #       accessKeyId:
+  #         name: s3-creds
+  #         key: ACCESS_KEY_ID
+  #       secretAccessKey:
+  #         name: s3-creds
+  #         key: SECRET_ACCESS_KEY
+  #     wal:
+  #       compression: gzip
+  #     data:
+  #       compression: gzip
+  #   retentionPolicy: "30d"
+
+  # Affinity для распределения по нодам
+  affinity:
+    enablePodAntiAffinity: true
+    topologyKey: kubernetes.io/hostname
+    podAntiAffinityType: preferred
+
+  # Node selection (опционально)
+  # nodeSelector:
+  #   workload: database
+
+---
+# =============================================================================
+# Scheduled Backup (опционально)
+# =============================================================================
+# apiVersion: postgresql.cnpg.io/v1
+# kind: ScheduledBackup
+# metadata:
+#   name: pg-cluster-backup
+#   namespace: cnpg-system
+# spec:
+#   schedule: "0 0 * * *"  # Ежедневно в полночь
+#   backupOwnerReference: self
+#   cluster:
+#     name: pg-cluster
+#   immediate: true
+#   suspend: false
+
+---
+# =============================================================================
+# Managed Roles - пользователи БД
+# =============================================================================
+# Для создания дополнительных пользователей используйте managed roles
+# Пароли берутся из Kubernetes secrets
+# =============================================================================
+
+# Пример с managed roles (раскомментируйте при необходимости):
+# apiVersion: postgresql.cnpg.io/v1
+# kind: Cluster
+# metadata:
+#   name: pg-cluster-with-roles
+# spec:
+#   instances: 2
+#   storage:
+#     size: 20Gi
+#
+#   managed:
+#     roles:
+#       - name: keycloak
+#         ensure: present
+#         login: true
+#         passwordSecret:
+#           name: secret-keycloak
+#       - name: kong
+#         ensure: present
+#         login: true
+#         passwordSecret:
+#           name: secret-kong
+#       - name: app_user
+#         ensure: present
+#         login: true
+#         createdb: true
+#         passwordSecret:
+#           name: secret-app-user

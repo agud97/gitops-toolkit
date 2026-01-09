@@ -1,0 +1,120 @@
+# =============================================================================
+# Cert-Manager
+# =============================================================================
+# Автоматическое управление TLS сертификатами
+# =============================================================================
+
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: cert-manager
+  namespace: argocd
+  annotations:
+    argocd.argoproj.io/sync-wave: "0"
+  finalizers:
+    - resources-finalizer.argocd.argoproj.io
+spec:
+  project: gitops-toolkit
+
+  source:
+    repoURL: https://charts.jetstack.io
+    chart: cert-manager
+    targetRevision: v1.16.0  # Обновите при необходимости
+
+    helm:
+      releaseName: cert-manager
+      values: |
+        # Install CRDs
+        crds:
+          enabled: true
+          keep: true
+
+        # Replicas
+        replicaCount: 1
+
+        # Resources
+        resources:
+          requests:
+            cpu: 10m
+            memory: 32Mi
+          limits:
+            cpu: 100m
+            memory: 128Mi
+
+        # Webhook
+        webhook:
+          replicaCount: 1
+          resources:
+            requests:
+              cpu: 10m
+              memory: 32Mi
+            limits:
+              cpu: 100m
+              memory: 128Mi
+
+        # CA Injector
+        cainjector:
+          enabled: true
+          replicaCount: 1
+          resources:
+            requests:
+              cpu: 10m
+              memory: 32Mi
+            limits:
+              cpu: 100m
+              memory: 128Mi
+
+        # Prometheus metrics
+        prometheus:
+          enabled: true
+          servicemonitor:
+            enabled: true
+
+        # Global options
+        global:
+          leaderElection:
+            namespace: cert-manager
+
+  destination:
+    server: https://kubernetes.default.svc
+    namespace: cert-manager
+
+  syncPolicy:
+    automated:
+      selfHeal: true
+      prune: true
+    syncOptions:
+      - CreateNamespace=true
+      - ServerSideApply=true
+
+---
+# =============================================================================
+# Cert-Manager Issuers
+# =============================================================================
+
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: cert-manager-issuers
+  namespace: argocd
+  annotations:
+    argocd.argoproj.io/sync-wave: "1"  # После cert-manager
+  finalizers:
+    - resources-finalizer.argocd.argoproj.io
+spec:
+  project: gitops-toolkit
+
+  source:
+    # ⚠️ ИЗМЕНИТЕ НА ВАШ РЕПОЗИТОРИЙ
+    repoURL: https://github.com/YOUR_USERNAME/gitops-toolkit.git
+    targetRevision: HEAD
+    path: manifests/custom/cert-manager-issuers
+
+  destination:
+    server: https://kubernetes.default.svc
+    namespace: cert-manager
+
+  syncPolicy:
+    automated:
+      selfHeal: true
+      prune: true

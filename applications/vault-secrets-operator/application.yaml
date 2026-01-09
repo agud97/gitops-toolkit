@@ -1,0 +1,104 @@
+# =============================================================================
+# Vault Secrets Operator (VSO)
+# =============================================================================
+# Синхронизирует секреты из Vault в Kubernetes Secrets
+#
+# Требует:
+#   1. Работающий Vault (инициализированный и unsealed)
+#   2. Настроенный Kubernetes auth в Vault
+# =============================================================================
+
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: vault-secrets-operator
+  namespace: argocd
+  annotations:
+    argocd.argoproj.io/sync-wave: "2"  # После Vault
+  finalizers:
+    - resources-finalizer.argocd.argoproj.io
+spec:
+  project: gitops-toolkit
+
+  source:
+    repoURL: https://helm.releases.hashicorp.com
+    chart: vault-secrets-operator
+    targetRevision: 0.10.0
+
+    helm:
+      releaseName: vault-secrets-operator
+      values: |
+        defaultVaultConnection:
+          enabled: true
+          address: "http://vault.vault.svc.cluster.local:8200"
+          skipTLSVerify: false
+
+        defaultAuthMethod:
+          enabled: true
+          namespace: ""  # Vault namespace (Enterprise)
+          method: kubernetes
+          mount: kubernetes
+          kubernetes:
+            role: vso-role
+            serviceAccount: default
+            tokenAudiences: []
+
+        controller:
+          replicas: 1
+          resources:
+            limits:
+              cpu: 500m
+              memory: 256Mi
+            requests:
+              cpu: 10m
+              memory: 64Mi
+
+        # Global transformer для секретов
+        # globalTransformationOptions:
+        #   excludeRaw: true
+
+  destination:
+    server: https://kubernetes.default.svc
+    namespace: vault-secrets-operator
+
+  syncPolicy:
+    automated:
+      selfHeal: true
+      prune: true
+    syncOptions:
+      - CreateNamespace=true
+
+---
+# =============================================================================
+# VSO Resources - VaultConnection и VaultAuth
+# =============================================================================
+# Применяется в целевом namespace где нужны секреты
+# Пример для cnpg-system namespace
+# =============================================================================
+
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: vso-resources
+  namespace: argocd
+  annotations:
+    argocd.argoproj.io/sync-wave: "3"  # После VSO
+  finalizers:
+    - resources-finalizer.argocd.argoproj.io
+spec:
+  project: gitops-toolkit
+
+  source:
+    # ⚠️ ИЗМЕНИТЕ НА ВАШ РЕПОЗИТОРИЙ
+    repoURL: https://github.com/YOUR_USERNAME/gitops-toolkit.git
+    targetRevision: HEAD
+    path: manifests/custom/vso-resources
+
+  destination:
+    server: https://kubernetes.default.svc
+    namespace: vault-secrets-operator
+
+  syncPolicy:
+    automated:
+      selfHeal: true
+      prune: true

@@ -1,0 +1,129 @@
+# =============================================================================
+# Centrifugo
+# =============================================================================
+# Real-time messaging server (WebSocket, SSE, etc.)
+# =============================================================================
+
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: centrifugo
+  namespace: argocd
+  annotations:
+    argocd.argoproj.io/sync-wave: "3"
+  finalizers:
+    - resources-finalizer.argocd.argoproj.io
+spec:
+  project: gitops-toolkit
+
+  source:
+    repoURL: https://centrifugal.github.io/helm-charts
+    chart: centrifugo
+    targetRevision: 12.5.0  # Обновите при необходимости
+
+    helm:
+      releaseName: centrifugo
+      values: |
+        # Image
+        image:
+          repository: centrifugo/centrifugo
+          tag: "v6"
+
+        # Replicas
+        replicaCount: 2
+
+        # Config
+        config:
+          # API key для backend
+          api_key: "your-api-key-change-me"  # ⚠️ ИЗМЕНИТЕ или используйте existingSecret
+
+          # Token secret для JWT
+          token_hmac_secret_key: "your-token-secret-change-me"  # ⚠️ ИЗМЕНИТЕ
+
+          # Engine (memory, redis, nats)
+          engine: memory
+          # Для Redis:
+          # engine: redis
+          # redis_address: redis://redis-master.redis.svc.cluster.local:6379
+
+          # Logging
+          log_level: info
+
+          # Namespaces
+          namespaces:
+            - name: public
+              publish: true
+              subscribe_to_publish: true
+              presence: true
+              join_leave: true
+              history_size: 100
+              history_ttl: "300s"
+
+          # Client settings
+          client_insecure: false
+          client_anonymous: false
+
+          # Health endpoint
+          health: true
+
+          # Prometheus metrics
+          prometheus: true
+
+        # Существующий секрет для sensitive данных
+        # existingSecret: centrifugo-secrets
+
+        # Resources
+        resources:
+          requests:
+            cpu: 100m
+            memory: 128Mi
+          limits:
+            cpu: 500m
+            memory: 512Mi
+
+        # Service
+        service:
+          type: ClusterIP
+          port: 8000
+
+        # Ingress
+        ingress:
+          enabled: false
+          # ingressClassName: nginx
+          # annotations:
+          #   nginx.ingress.kubernetes.io/proxy-read-timeout: "3600"
+          #   nginx.ingress.kubernetes.io/proxy-send-timeout: "3600"
+          #   nginx.ingress.kubernetes.io/proxy-http-version: "1.1"
+          #   nginx.ingress.kubernetes.io/upstream-hash-by: "$request_uri"
+          # hosts:
+          #   - host: centrifugo.your-domain.com
+          #     paths:
+          #       - path: /
+          #         pathType: Prefix
+
+        # Autoscaling
+        autoscaling:
+          enabled: false
+          minReplicas: 2
+          maxReplicas: 10
+          targetCPUUtilizationPercentage: 80
+
+        # Service Monitor
+        serviceMonitor:
+          enabled: true
+
+        # Pod Disruption Budget
+        podDisruptionBudget:
+          enabled: true
+          minAvailable: 1
+
+  destination:
+    server: https://kubernetes.default.svc
+    namespace: centrifugo
+
+  syncPolicy:
+    automated:
+      selfHeal: true
+      prune: true
+    syncOptions:
+      - CreateNamespace=true

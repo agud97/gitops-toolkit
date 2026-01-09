@@ -1,0 +1,52 @@
+apiVersion: argoproj.io/v1alpha1
+kind: AppProject
+metadata:
+  name: gitops-toolkit
+  namespace: argocd
+  finalizers:
+    - resources-finalizer.argocd.argoproj.io
+spec:
+  description: GitOps Toolkit - Reusable Infrastructure Components
+
+  # Источники
+  sourceRepos:
+    - '*'  # Замените на ваш репозиторий: https://github.com/YOUR_USERNAME/gitops-toolkit.git
+
+  # Разрешённые destinations
+  destinations:
+    - namespace: '*'
+      server: https://kubernetes.default.svc
+    # Для multi-cluster добавьте другие кластеры:
+    # - namespace: '*'
+    #   server: https://your-cluster-api-server
+
+  # Разрешённые cluster-scoped ресурсы
+  clusterResourceWhitelist:
+    - group: '*'
+      kind: '*'
+
+  # Разрешённые namespace-scoped ресурсы
+  namespaceResourceWhitelist:
+    - group: '*'
+      kind: '*'
+
+  # Роли проекта (опционально)
+  roles:
+    - name: admin
+      description: Full access to project
+      policies:
+        - p, proj:gitops-toolkit:admin, applications, *, gitops-toolkit/*, allow
+      groups:
+        - my-admin-group
+
+    - name: developer
+      description: Read-only access
+      policies:
+        - p, proj:gitops-toolkit:developer, applications, get, gitops-toolkit/*, allow
+        - p, proj:gitops-toolkit:developer, applications, sync, gitops-toolkit/*, allow
+      groups:
+        - my-dev-group
+
+  # Orphaned resources monitoring
+  orphanedResources:
+    warn: true

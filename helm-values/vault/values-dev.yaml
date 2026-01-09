@@ -1,0 +1,72 @@
+# =============================================================================
+# Vault - Development Values
+# =============================================================================
+# Настройки для development окружения
+# Используйте вместе с values-base.yaml
+# =============================================================================
+
+server:
+  # Standalone mode для dev
+  standalone:
+    enabled: true
+    config: |
+      ui = true
+      
+      listener "tcp" {
+        tls_disable = 1
+        address = "[::]:8200"
+        cluster_address = "[::]:8201"
+      }
+      
+      storage "file" {
+        path = "/vault/data"
+      }
+      
+      # Dev mode telemetry
+      telemetry {
+        prometheus_retention_time = "30s"
+        disable_hostname = true
+      }
+
+  # HA выключено для dev
+  ha:
+    enabled: false
+
+  # Минимальные ресурсы для dev
+  resources:
+    requests:
+      memory: 128Mi
+      cpu: 100m
+    limits:
+      memory: 256Mi
+      cpu: 250m
+
+  # Маленький storage
+  dataStorage:
+    size: 5Gi
+    storageClass: ""  # default storage class
+
+  # Dev ingress
+  ingress:
+    enabled: false
+    # ingressClassName: nginx
+    # hosts:
+    #   - host: vault.dev.local
+    #     paths:
+    #       - /
+
+# Injector - минимальные ресурсы
+injector:
+  resources:
+    requests:
+      memory: 64Mi
+      cpu: 50m
+    limits:
+      memory: 128Mi
+      cpu: 100m
+
+# Dev mode (не для production!)
+# server:
+#   dev:
+#     enabled: true
+#     devRootToken: "root"

@@ -1,0 +1,147 @@
+# =============================================================================
+# Keycloak Instance
+# =============================================================================
+# Требует: Keycloak Operator, PostgreSQL
+# =============================================================================
+
+apiVersion: k8s.keycloak.org/v2alpha1
+kind: Keycloak
+metadata:
+  name: keycloak
+  namespace: keycloak
+spec:
+  # Количество реплик
+  instances: 1  # Увеличьте для production
+
+  # Database
+  db:
+    vendor: postgres
+    host: pg-cluster-rw.cnpg-system.svc.cluster.local
+    port: 5432
+    database: keycloak
+    usernameSecret:
+      name: keycloak-db-secret
+      key: username
+    passwordSecret:
+      name: keycloak-db-secret
+      key: password
+
+  # HTTP/HTTPS
+  http:
+    httpEnabled: true
+    httpPort: 8080
+    httpsPort: 8443
+    # tlsSecret: keycloak-tls  # TLS сертификат
+
+  # Hostname
+  hostname:
+    hostname: keycloak.your-domain.com  # ⚠️ ИЗМЕНИТЕ
+    # strict: true
+    # strictBackchannel: true
+
+  # Proxy settings (если за reverse proxy)
+  proxy:
+    headers: xforwarded
+
+  # Additional options
+  additionalOptions:
+    # Метрики
+    - name: metrics-enabled
+      value: "true"
+    # Health checks
+    - name: health-enabled
+      value: "true"
+    # Logging
+    - name: log-level
+      value: "INFO"
+    # Caching
+    - name: cache
+      value: "ispn"
+
+  # Resources
+  resources:
+    requests:
+      cpu: 250m
+      memory: 512Mi
+    limits:
+      cpu: 1000m
+      memory: 1Gi
+
+  # Unsupported features (для dev)
+  # unsupported:
+  #   podTemplate:
+  #     spec:
+  #       containers:
+  #         - name: keycloak
+  #           env:
+  #             - name: KC_FEATURES
+  #               value: "preview"
+
+---
+# =============================================================================
+# Database Secret
+# =============================================================================
+# ⚠️ В production используйте External Secrets или VSO
+# =============================================================================
+
+apiVersion: v1
+kind: Secret
+metadata:
+  name: keycloak-db-secret
+  namespace: keycloak
+type: Opaque
+stringData:
+  username: keycloak
+  password: CHANGE_ME_IN_PRODUCTION  # ⚠️ ИЗМЕНИТЕ
+
+---
+# =============================================================================
+# Ingress для Keycloak
+# =============================================================================
+
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: keycloak-ingress
+  namespace: keycloak
+  annotations:
+    # nginx.ingress.kubernetes.io/ssl-redirect: "true"
+    # cert-manager.io/cluster-issuer: letsencrypt-prod
+spec:
+  ingressClassName: nginx
+  rules:
+    - host: keycloak.your-domain.com  # ⚠️ ИЗМЕНИТЕ
+      http:
+        paths:
+          - path: /
+            pathType: Prefix
+            backend:
+              service:
+                name: keycloak-service
+                port:
+                  number: 8080
+  # TLS (опционально)
+  # tls:
+  #   - hosts:
+  #       - keycloak.your-domain.com
+  #     secretName: keycloak-tls
+
+---
+# =============================================================================
+# Keycloak Realm Import (опционально)
+# =============================================================================
+# Импорт realm из JSON файла
+# =============================================================================
+
+# apiVersion: k8s.keycloak.org/v2alpha1
+# kind: KeycloakRealmImport
+# metadata:
+#   name: my-realm-import
+#   namespace: keycloak
+# spec:
+#   keycloakCRName: keycloak
+#   realm:
+#     realm: my-realm
+#     enabled: true
+#     displayName: "My Realm"
+#     # ... остальная конфигурация realm

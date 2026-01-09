@@ -1,0 +1,132 @@
+# =============================================================================
+# Redis / Valkey
+# =============================================================================
+# In-memory cache и data store
+# Valkey - Redis-совместимый форк
+# =============================================================================
+
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: redis
+  namespace: argocd
+  annotations:
+    argocd.argoproj.io/sync-wave: "2"
+  finalizers:
+    - resources-finalizer.argocd.argoproj.io
+spec:
+  project: gitops-toolkit
+
+  source:
+    # Bitnami Redis chart (работает и для Valkey)
+    repoURL: https://charts.bitnami.com/bitnami
+    chart: redis
+    targetRevision: 20.5.0  # Обновите при необходимости
+
+    helm:
+      releaseName: redis
+      values: |
+        # Image (Redis или Valkey)
+        image:
+          registry: docker.io
+          repository: bitnami/redis
+          tag: 8.0  # или valkey/valkey для Valkey
+
+        # Architecture: standalone или replication
+        architecture: replication  # primary + replicas
+
+        # Auth
+        auth:
+          enabled: true
+          # sentinel: true  # Если используете Sentinel
+          # password: ""    # Будет сгенерирован автоматически
+          # existingSecret: redis-password
+
+        # Master
+        master:
+          count: 1
+          persistence:
+            enabled: true
+            size: 8Gi
+            # storageClass: fast-ssd
+          resources:
+            requests:
+              cpu: 100m
+              memory: 128Mi
+            limits:
+              cpu: 500m
+              memory: 512Mi
+
+        # Replicas
+        replica:
+          replicaCount: 2
+          persistence:
+            enabled: true
+            size: 8Gi
+          resources:
+            requests:
+              cpu: 100m
+              memory: 128Mi
+            limits:
+              cpu: 500m
+              memory: 512Mi
+
+        # Sentinel (для автоматического failover)
+        sentinel:
+          enabled: false  # Включите для production HA
+          # masterSet: mymaster
+          # quorum: 2
+
+        # Metrics
+        metrics:
+          enabled: true
+          serviceMonitor:
+            enabled: true
+
+        # Network policy
+        networkPolicy:
+          enabled: false
+
+        # Pod Disruption Budget
+        pdb:
+          create: true
+          minAvailable: 1
+
+  destination:
+    server: https://kubernetes.default.svc
+    namespace: redis
+
+  syncPolicy:
+    automated:
+      selfHeal: true
+      prune: true
+    syncOptions:
+      - CreateNamespace=true
+
+---
+# =============================================================================
+# Valkey Operator (альтернатива)
+# =============================================================================
+# Если предпочитаете использовать Valkey Operator
+# =============================================================================
+
+# apiVersion: argoproj.io/v1alpha1
+# kind: Application
+# metadata:
+#   name: valkey-operator
+#   namespace: argocd
+# spec:
+#   project: gitops-toolkit
+#   source:
+#     repoURL: https://github.com/hyperspike/valkey-operator.git
+#     targetRevision: HEAD
+#     path: config/default
+#   destination:
+#     server: https://kubernetes.default.svc
+#     namespace: valkey-system
+#   syncPolicy:
+#     automated:
+#       selfHeal: true
+#       prune: true
+#     syncOptions:
+#       - CreateNamespace=true

@@ -1,0 +1,70 @@
+# =============================================================================
+# Vault - Base Values
+# =============================================================================
+# Общие настройки, наследуемые всеми окружениями
+# =============================================================================
+
+global:
+  enabled: true
+  tlsDisable: true
+
+server:
+  enabled: true
+  
+  image:
+    repository: hashicorp/vault
+    tag: "1.20.1"
+
+  updateStrategyType: "OnDelete"
+
+  # Логирование
+  logLevel: "info"
+  logFormat: "json"
+
+  # Readiness/Liveness
+  readinessProbe:
+    enabled: true
+    path: "/v1/sys/health?standbyok=true&sealedcode=204&uninitcode=204"
+  livenessProbe:
+    enabled: true
+    path: "/v1/sys/health?standbyok=true"
+    initialDelaySeconds: 60
+
+  # Service
+  service:
+    enabled: true
+    type: ClusterIP
+    port: 8200
+
+  # Data storage
+  dataStorage:
+    enabled: true
+    size: 10Gi
+
+  # Audit storage (опционально)
+  auditStorage:
+    enabled: false
+    size: 10Gi
+
+# UI
+ui:
+  enabled: true
+  serviceType: ClusterIP
+
+# Injector
+injector:
+  enabled: true
+  replicas: 1
+  
+  resources:
+    requests:
+      memory: 256Mi
+      cpu: 250m
+    limits:
+      memory: 256Mi
+      cpu: 250m
+
+# Server Telemetry
+serverTelemetry:
+  serviceMonitor:
+    enabled: true
